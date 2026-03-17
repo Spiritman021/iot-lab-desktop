@@ -1,0 +1,45 @@
+name: iot_lab_desktop
+description: "IoT Lab - Device Management & Monitoring"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  # Database
+  drift: ^2.27.0
+  sqlite3_flutter_libs: ^0.5.32
+  path_provider: ^2.1.5
+  path: ^1.9.1
+  # MQTT
+  mqtt_client: ^10.8.1
+  # Routing
+  go_router: ^15.1.2
+  # Auth
+  bcrypt: ^1.1.3
+  shared_preferences: ^2.5.3
+  # Charts
+  fl_chart: ^0.70.2
+  # Icons
+  lucide_icons: ^0.257.0
+  # Notifications
+  # flutter_local_notifications: ^19.0.0
+  # Utils
+  intl: ^0.20.2
+  uuid: ^4.5.1
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.27.0
+  build_runner: ^2.4.15
+
+flutter:
+  uses-material-design: true
