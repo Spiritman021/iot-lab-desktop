@@ -35,12 +35,12 @@ class AppScaffoldState extends State<AppScaffold> {
   void initState() {
     super.initState();
     _authService = AuthService.instance;
-    _mqttService = MqttService();
+    _mqttService = MqttService.instance;
 
     // Initialize auth and MQTT
     _authService.init().then((_) {
       if (_authService.isAuthenticated) {
-        _mqttService.connect();
+        _mqttService.loadSettings().then((_) => _mqttService.connect());
       }
     });
 
@@ -79,6 +79,9 @@ class AppScaffoldState extends State<AppScaffold> {
       case 3:
         context.go('/settings/setup');
         break;
+      case 4:
+        context.go('/settings/admin');
+        break;
     }
   }
 
@@ -99,6 +102,8 @@ class AppScaffoldState extends State<AppScaffold> {
       currentIndex = 2;
     } else if (location.startsWith('/settings/setup')) {
       currentIndex = 3;
+    } else if (location.startsWith('/settings/admin')) {
+      currentIndex = 4;
     }
     if (currentIndex != _selectedIndex) {
       _selectedIndex = currentIndex;
@@ -220,6 +225,10 @@ class AppScaffoldState extends State<AppScaffold> {
               NavigationRailDestination(
                 icon: Icon(LucideIcons.fileText),
                 label: Text('Setup'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(LucideIcons.shieldCheck),
+                label: Text('Admin'),
               ),
             ],
           ),

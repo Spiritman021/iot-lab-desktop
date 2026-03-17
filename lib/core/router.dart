@@ -5,6 +5,7 @@ import '../features/auth/register_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/homepage/homepage_screen.dart';
 import '../features/layout/app_scaffold.dart';
+import '../features/settings/admin_settings_screen.dart';
 import '../features/settings/manage_devices_screen.dart';
 import '../features/settings/manage_header_footer_screen.dart';
 import '../features/settings/manage_users_screen.dart';
@@ -64,6 +65,10 @@ GoRouter createRouter(AuthService authService) {
           GoRoute(
             path: '/settings/setup',
             builder: (context, state) => const ManageHeaderFooterScreen(),
+          ),
+          GoRoute(
+            path: '/settings/admin',
+            builder: (context, state) => const AdminSettingsScreen(),
           ),
         ],
       ),
