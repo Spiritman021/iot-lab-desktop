@@ -138,6 +138,13 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           const SizedBox(height: 12),
 
+          // Global alarm banner (matches Alarm.tsx — placed at dashboard level)
+          _AlarmBanner(
+            device: _device!,
+            config: _config,
+            mqttService: mqttService,
+          ),
+
           // Tab content
           Expanded(
             child: TabBarView(
@@ -1200,7 +1207,7 @@ class _ValueRow extends StatelessWidget {
   }
 }
 
-// ─── Log tab (unchanged) ────────────────────────────────────────────────────
+// ─── Log tab (matches LogTable.tsx + LogModeComp.tsx + ProductDetails.tsx) ───
 
 class _LogTab extends StatefulWidget {
   final Device device;
@@ -1222,13 +1229,139 @@ class _LogTab extends StatefulWidget {
 class _LogTabState extends State<_LogTab> {
   final AppDatabase _db = AppDatabase.instance;
 
-  Future<void> _deleteAllLogs() async {
+  // Product details (matching ProductDetails.tsx)
+  final _productController = TextEditingController();
+  final _batchNoController = TextEditingController();
+  final _arNoController = TextEditingController();
+
+  // Log mode (matching LogModeComp.tsx)
+  String _logMode = '0'; // '0'=off, '1'=stable, '2'=button, '3'=interval
+  bool _disabled = false;
+
+  // Interval timer
+  final _hrsController = TextEditingController(text: '0');
+  final _minsController = TextEditingController(text: '0');
+  final _secsController = TextEditingController(text: '0');
+  bool _intervalStarted = false;
+
+  // MQTT listener for LOG_DATA and RESET
+  StreamSubscription? _mqttSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupMqttListener();
+  }
+
+  void _setupMqttListener() {
+    final deviceId = widget.device.deviceId;
+
+    _mqttSub = widget.mqttService.messageStream.listen((msg) {
+      // Listen for LOG_DATA — create log locally (replaces backend logic)
+      if (msg.topic == '/$deviceId/LOG_DATA' && msg.payload.isNotEmpty) {
+        _handleLogData(msg.payload);
+      }
+
+      // Listen for RESET
+      if (msg.topic == '/$deviceId/RESET' && msg.payload == '1.00') {
+        if (mounted) {
+          setState(() {
+            _logMode = '0';
+            _disabled = false;
+            _intervalStarted = false;
+            _hrsController.text = '0';
+            _minsController.text = '0';
+            _secsController.text = '0';
+          });
+        }
+      }
+    });
+  }
+
+  Future<void> _handleLogData(String payload) async {
+    // Parse "val/temp" format (matching backend's LOG_DATA handler)
+    final parts = payload.split('/');
+    if (parts.length < 2) return;
+
+    final val = double.tryParse(parts[0]);
+    final temp = double.tryParse(parts[1]);
+    if (val == null || temp == null) return;
+
+    // Create log in local DB (replaces backend's Log.create)
+    await _db.insertLog(LogsCompanion.insert(
+      deviceId: widget.device.id,
+      val: double.parse(val.toStringAsFixed(2)),
+      temp: double.parse(temp.toStringAsFixed(2)),
+      product: Value(_productController.text.trim().isEmpty
+          ? null
+          : _productController.text.trim()),
+      batchNo: Value(_batchNoController.text.trim().isEmpty
+          ? null
+          : _batchNoController.text.trim()),
+      arNo: Value(_arNoController.text.trim().isEmpty
+          ? null
+          : _arNoController.text.trim()),
+    ));
+
+    widget.onRefresh();
+  }
+
+  // ── Log Mode handlers (matching LogModeComp.tsx) ──
+
+  void _handleModeSwitch(bool enabled, String modeValue) {
+    final deviceId = widget.device.deviceId;
+
+    setState(() {
+      _disabled = enabled;
+      _logMode = enabled ? modeValue : '0';
+      _intervalStarted = false;
+      _hrsController.text = '0';
+      _minsController.text = '0';
+      _secsController.text = '0';
+    });
+
+    widget.mqttService.publishToDevice('/$deviceId/LOG_MS', '0');
+    widget.mqttService.publishToDevice(
+        '/$deviceId/LOG_MODE', enabled ? modeValue : '0');
+  }
+
+  void _handleManualLog() {
+    final deviceId = widget.device.deviceId;
+    final val = widget.mqttService.deviceValues['/$deviceId/PH_VAL'] ?? '0';
+    final temp = widget.mqttService.deviceValues['/$deviceId/TEMP_VAL'] ?? '0';
+
+    // Publish LOG_DATA to trigger log creation (matching web app's Log button)
+    widget.mqttService.publishToDevice('/$deviceId/LOG_DATA', '$val/$temp');
+  }
+
+  void _startStopInterval() {
+    final deviceId = widget.device.deviceId;
+
+    if (!_intervalStarted) {
+      // Start interval
+      final hrs = int.tryParse(_hrsController.text) ?? 0;
+      final mins = int.tryParse(_minsController.text) ?? 0;
+      final secs = int.tryParse(_secsController.text) ?? 0;
+      final totalSecs = hrs * 3600 + mins * 60 + secs;
+
+      widget.mqttService.publishToDevice(
+          '/$deviceId/LOG_MS', (totalSecs * 1000).toString());
+      widget.mqttService.publishToDevice('/$deviceId/LOG_MODE', '3');
+    } else {
+      // Stop interval
+      widget.mqttService.publishToDevice('/$deviceId/LOG_MS', '0');
+    }
+
+    setState(() => _intervalStarted = !_intervalStarted);
+  }
+
+  Future<void> _clearLogs() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete All Logs'),
-        content:
-            const Text('Are you sure you want to delete all logs for this device?'),
+        title: const Text('Clear Logs'),
+        content: const Text(
+            'Are you sure you want to delete all logs for this device?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -1249,58 +1382,280 @@ class _LogTabState extends State<_LogTab> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Logs deleted'), backgroundColor: Colors.green),
+              content: Text('Logs cleared'), backgroundColor: Colors.green),
         );
       }
     }
   }
 
+  void _clearProductDetails() {
+    _productController.clear();
+    _batchNoController.clear();
+    _arNoController.clear();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Details cleared'), backgroundColor: Colors.green),
+    );
+  }
+
+  void _submitProductDetails() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Details saved'), backgroundColor: Colors.green),
+    );
+  }
+
+  @override
+  void dispose() {
+    _mqttSub?.cancel();
+    _productController.dispose();
+    _batchNoController.dispose();
+    _arNoController.dispose();
+    _hrsController.dispose();
+    _minsController.dispose();
+    _secsController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isEc = widget.device.type == 'ec';
+    final hasInterval = (int.tryParse(_hrsController.text) ?? 0) > 0 ||
+        (int.tryParse(_minsController.text) ?? 0) > 0 ||
+        (int.tryParse(_secsController.text) ?? 0) > 0;
+
+    // Reverse logs for display (newest first, matching web app)
+    final reversedLogs = widget.logs.reversed.toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            if (widget.logs.isNotEmpty)
-              TextButton.icon(
-                icon: const Icon(LucideIcons.trash2, size: 16, color: Colors.red),
-                label:
-                    const Text('Delete All', style: TextStyle(color: Colors.red)),
-                onPressed: _deleteAllLogs,
+        // ── Product Details (matches ProductDetails.tsx) ──
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _productController,
+                  enabled: !_disabled,
+                  decoration: const InputDecoration(
+                    hintText: 'Product Name',
+                    isDense: true,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
               ),
-          ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _batchNoController,
+                  enabled: !_disabled,
+                  decoration: const InputDecoration(
+                    hintText: 'Batch No',
+                    isDense: true,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _arNoController,
+                  enabled: !_disabled,
+                  decoration: const InputDecoration(
+                    hintText: 'AR No',
+                    isDense: true,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: _disabled ? null : _submitProductDetails,
+                child: const Text('Submit'),
+              ),
+              const SizedBox(width: 8),
+              PopupMenuButton<String>(
+                enabled: !_disabled,
+                onSelected: (val) {
+                  // Export placeholder
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Export $val - coming soon')),
+                  );
+                },
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(value: 'All', child: Text('All')),
+                  const PopupMenuItem(value: 'Pdf', child: Text('Pdf')),
+                ],
+                child: FilledButton.tonal(
+                  onPressed: _disabled ? null : () {},
+                  child: const Text('Export'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: _disabled ? null : _clearProductDetails,
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Clear Details'),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
+
+        const SizedBox(height: 12),
+
+        // ── Log Mode Controls (matches LogModeComp.tsx) ──
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              // Manual Log button
+              FilledButton(
+                onPressed: _handleManualLog,
+                child: const Text('Log'),
+              ),
+              const SizedBox(width: 16),
+
+              // Log on Stable
+              _LogModeSwitch(
+                label: 'Log on Stable',
+                isActive: _logMode == '1',
+                onChanged: (val) => _handleModeSwitch(val, '1'),
+              ),
+              const SizedBox(width: 16),
+
+              // Log on Button
+              _LogModeSwitch(
+                label: 'Log on Button',
+                isActive: _logMode == '2',
+                onChanged: (val) => _handleModeSwitch(val, '2'),
+              ),
+              const SizedBox(width: 16),
+
+              // Log at Interval
+              _LogModeSwitch(
+                label: 'Log at Interval',
+                isActive: _logMode == '3',
+                onChanged: (val) => _handleModeSwitch(val, '3'),
+              ),
+              const SizedBox(width: 12),
+
+              // Interval inputs (h/m/s)
+              SizedBox(
+                width: 60,
+                child: TextField(
+                  controller: _hrsController,
+                  enabled: _logMode == '3' && !_intervalStarted,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 'h',
+                    isDense: true,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 60,
+                child: TextField(
+                  controller: _minsController,
+                  enabled: _logMode == '3' && !_intervalStarted,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 'm',
+                    isDense: true,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 60,
+                child: TextField(
+                  controller: _secsController,
+                  enabled: _logMode == '3' && !_intervalStarted,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 's',
+                    isDense: true,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Start/Stop button
+              IconButton.filled(
+                onPressed:
+                    (_logMode != '3' || !hasInterval) ? null : _startStopInterval,
+                icon: Icon(
+                  _intervalStarted ? LucideIcons.square : LucideIcons.play,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Interval status
+              if (_intervalStarted)
+                Text(
+                  'Logging every '
+                  '${(int.tryParse(_hrsController.text) ?? 0) > 0 ? '${_hrsController.text}h ' : ''}'
+                  '${(int.tryParse(_minsController.text) ?? 0) > 0 ? '${_minsController.text}m ' : ''}'
+                  '${(int.tryParse(_secsController.text) ?? 0) > 0 ? '${_secsController.text}s' : ''}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+              const SizedBox(width: 16),
+
+              // Clear Logs
+              FilledButton(
+                onPressed: _logMode != '0' ? null : _clearLogs,
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Clear Logs'),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // ── Log Table (matches LogTable.tsx) ──
         Expanded(
-          child: widget.logs.isEmpty
+          child: reversedLogs.isEmpty
               ? const Center(child: Text('No logs recorded yet'))
               : SingleChildScrollView(
                   child: SizedBox(
                     width: double.infinity,
                     child: DataTable(
-                      columns: const [
-                        DataColumn(label: Text('#')),
-                        DataColumn(label: Text('Value')),
-                        DataColumn(label: Text('Temp (°C)')),
-                        DataColumn(label: Text('Product')),
-                        DataColumn(label: Text('Batch No')),
-                        DataColumn(label: Text('AR No')),
-                        DataColumn(label: Text('Time')),
+                      columns: [
+                        const DataColumn(label: Text('Date Time')),
+                        DataColumn(label: Text(isEc ? 'EC' : 'Ph')),
+                        const DataColumn(label: Text('Temp')),
+                        const DataColumn(label: Text('Product')),
+                        const DataColumn(label: Text('Batch No.')),
+                        const DataColumn(label: Text('AR No.')),
                       ],
-                      rows: widget.logs.asMap().entries.map((entry) {
-                        final idx = entry.key;
-                        final log = entry.value;
+                      rows: reversedLogs.map((log) {
                         return DataRow(cells: [
-                          DataCell(Text('${idx + 1}')),
+                          DataCell(Text(
+                            DateFormat('yyyy/MM/dd h:mm:ss a')
+                                .format(log.createdAt),
+                          )),
                           DataCell(Text(log.val.toStringAsFixed(2))),
                           DataCell(Text(log.temp.toStringAsFixed(2))),
-                          DataCell(Text(log.product ?? '--')),
-                          DataCell(Text(log.batchNo ?? '--')),
-                          DataCell(Text(log.arNo ?? '--')),
-                          DataCell(Text(
-                              log.createdAt.toString().substring(0, 19))),
+                          DataCell(Text(log.product ?? '')),
+                          DataCell(Text(log.batchNo ?? '')),
+                          DataCell(Text(log.arNo ?? '')),
                         ]);
                       }).toList(),
                     ),
@@ -1312,7 +1667,35 @@ class _LogTabState extends State<_LogTab> {
   }
 }
 
-// ─── Graph tab (unchanged) ──────────────────────────────────────────────────
+/// Log mode toggle switch (matches the Switch component in LogModeComp.tsx)
+class _LogModeSwitch extends StatelessWidget {
+  final String label;
+  final bool isActive;
+  final ValueChanged<bool> onChanged;
+
+  const _LogModeSwitch({
+    required this.label,
+    required this.isActive,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(width: 4),
+        Switch(
+          value: isActive,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Graph tab (matches LogsGraph.tsx) ──────────────────────────────────────
 
 class _GraphTab extends StatelessWidget {
   final List<Log> logs;
@@ -1325,84 +1708,169 @@ class _GraphTab extends StatelessWidget {
       return const Center(child: Text('No log data to graph'));
     }
 
-    final sortedLogs = logs.reversed.toList();
+    final theme = Theme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: LineChart(
-        LineChartData(
-          gridData: const FlGridData(show: true),
-          titlesData: FlTitlesData(
-            leftTitles: AxisTitles(
-              axisNameWidget: const Text('Value'),
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 40,
-                getTitlesWidget: (value, meta) {
-                  return Text(value.toStringAsFixed(1),
-                      style: const TextStyle(fontSize: 10));
-                },
+    // Keep original order (oldest first) for chronological plotting
+    final chartLogs = logs.reversed.toList();
+
+    return Center(
+      child: FractionallySizedBox(
+        widthFactor: 0.85,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 32, bottom: 16),
+          child: Column(
+            children: [
+              // Legend
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _LegendItem(
+                    color: theme.colorScheme.primary,
+                    label: 'Ph / EC',
+                  ),
+                  const SizedBox(width: 24),
+                  const _LegendItem(
+                    color: Colors.orange,
+                    label: 'Temperature',
+                  ),
+                ],
               ),
-            ),
-            bottomTitles: AxisTitles(
-              axisNameWidget: const Text('Readings'),
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  final idx = value.toInt();
-                  if (idx >= 0 && idx < sortedLogs.length && idx % 5 == 0) {
-                    return Text('${idx + 1}',
-                        style: const TextStyle(fontSize: 10));
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
-            topTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          borderData: FlBorderData(show: true),
-          lineBarsData: [
-            LineChartBarData(
-              spots: sortedLogs.asMap().entries.map((e) {
-                return FlSpot(e.key.toDouble(), e.value.val);
-              }).toList(),
-              isCurved: true,
-              color: Theme.of(context).colorScheme.primary,
-              barWidth: 2,
-              dotData: const FlDotData(show: false),
-            ),
-            LineChartBarData(
-              spots: sortedLogs.asMap().entries.map((e) {
-                return FlSpot(e.key.toDouble(), e.value.temp);
-              }).toList(),
-              isCurved: true,
-              color: Colors.orange,
-              barWidth: 2,
-              dotData: const FlDotData(show: false),
-              dashArray: [5, 3],
-            ),
-          ],
-          lineTouchData: LineTouchData(
-            touchTooltipData: LineTouchTooltipData(
-              getTooltipItems: (touchedSpots) {
-                return touchedSpots.map((spot) {
-                  final label = spot.barIndex == 0 ? 'Value' : 'Temp';
-                  return LineTooltipItem(
-                    '$label: ${spot.y.toStringAsFixed(2)}',
-                    TextStyle(
-                      color: spot.barIndex == 0
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.orange,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+              const SizedBox(height: 16),
+              // Chart
+              Expanded(
+                child: LineChart(
+                  LineChartData(
+                    // Horizontal grid lines only (matching CartesianGrid vertical={false})
+                    gridData: const FlGridData(
+                      show: true,
+                      drawVerticalLine: false,
+                      drawHorizontalLine: true,
                     ),
-                  );
-                }).toList();
-              },
-            ),
+                    titlesData: FlTitlesData(
+                      // Y-axis (left)
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 48,
+                          getTitlesWidget: (value, meta) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Text(
+                                value.toStringAsFixed(1),
+                                style: const TextStyle(fontSize: 10),
+                                textAlign: TextAlign.right,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      // X-axis (bottom) — time labels matching web app's toLocaleTimeString()
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 36,
+                          interval: chartLogs.length > 10
+                              ? (chartLogs.length / 8).ceilToDouble()
+                              : 1,
+                          getTitlesWidget: (value, meta) {
+                            final idx = value.toInt();
+                            if (idx >= 0 && idx < chartLogs.length) {
+                              final t = chartLogs[idx].createdAt;
+                              final hour = t.hour > 12
+                                  ? t.hour - 12
+                                  : t.hour == 0
+                                      ? 12
+                                      : t.hour;
+                              final amPm = t.hour >= 12 ? 'PM' : 'AM';
+                              final timeStr =
+                                  '$hour:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')} $amPm';
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Transform.rotate(
+                                  angle: -0.5,
+                                  child: Text(
+                                    timeStr,
+                                    style: const TextStyle(fontSize: 9),
+                                  ),
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      ),
+                      topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                    ),
+                    borderData: FlBorderData(
+                      show: true,
+                      border: Border(
+                        left: BorderSide(
+                            color: theme.colorScheme.outlineVariant),
+                        bottom: BorderSide(
+                            color: theme.colorScheme.outlineVariant),
+                      ),
+                    ),
+                    lineBarsData: [
+                      // Ph/EC line (matching dataKey="ph", stroke="var(--chart-2)")
+                      LineChartBarData(
+                        spots: chartLogs.asMap().entries.map((e) {
+                          return FlSpot(e.key.toDouble(), e.value.val);
+                        }).toList(),
+                        isCurved: true,
+                        curveSmoothness: 0.35,
+                        color: theme.colorScheme.primary,
+                        barWidth: 2,
+                        dotData: const FlDotData(show: false),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          color: theme.colorScheme.primary
+                              .withValues(alpha: 0.05),
+                        ),
+                      ),
+                      // Temperature line (matching dataKey="temp", stroke="var(--chart-1)")
+                      LineChartBarData(
+                        spots: chartLogs.asMap().entries.map((e) {
+                          return FlSpot(e.key.toDouble(), e.value.temp);
+                        }).toList(),
+                        isCurved: true,
+                        curveSmoothness: 0.35,
+                        color: Colors.orange,
+                        barWidth: 2,
+                        dotData: const FlDotData(show: false),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          color: Colors.orange.withValues(alpha: 0.05),
+                        ),
+                      ),
+                    ],
+                    lineTouchData: LineTouchData(
+                      touchTooltipData: LineTouchTooltipData(
+                        tooltipRoundedRadius: 8,
+                        getTooltipItems: (touchedSpots) {
+                          return touchedSpots.map((spot) {
+                            final label =
+                                spot.barIndex == 0 ? 'Ph/EC' : 'Temp';
+                            return LineTooltipItem(
+                              '$label: ${spot.y.toStringAsFixed(2)}',
+                              TextStyle(
+                                color: spot.barIndex == 0
+                                    ? theme.colorScheme.primary
+                                    : Colors.orange,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            );
+                          }).toList();
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1410,7 +1878,139 @@ class _GraphTab extends StatelessWidget {
   }
 }
 
-// ─── Alarm tab (unchanged) ──────────────────────────────────────────────────
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _LegendItem({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 16,
+          height: 3,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+      ],
+    );
+  }
+}
+
+// ─── Alarm Banner (matches Alarm.tsx — dashboard-level alert) ────────────────
+
+class _AlarmBanner extends StatefulWidget {
+  final Device device;
+  final DeviceConfig? config;
+  final MqttService mqttService;
+
+  const _AlarmBanner({
+    required this.device,
+    required this.config,
+    required this.mqttService,
+  });
+
+  @override
+  State<_AlarmBanner> createState() => _AlarmBannerState();
+}
+
+class _AlarmBannerState extends State<_AlarmBanner> {
+  String? _alarmTriggered; // 'min' | 'max' | null
+  bool _muted = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final minPh = widget.config?.minPh ?? 0;
+    final maxPh = widget.config?.maxPh ?? 0;
+    final deviceId = widget.device.deviceId;
+
+    return ListenableBuilder(
+      listenable: widget.mqttService,
+      builder: (context, _) {
+        final value = double.tryParse(
+                widget.mqttService.deviceValues['/$deviceId/PH_VAL'] ?? '0') ??
+            0;
+        final isActive =
+            widget.mqttService.deviceValues['/$deviceId/STATUS'] == '1';
+
+        // Alarm logic (matching Alarm.tsx useEffect)
+        String? triggered;
+        if (minPh >= maxPh || !isActive) {
+          triggered = null;
+        } else {
+          if (value < minPh) {
+            triggered = 'min';
+          } else if (value > maxPh) {
+            triggered = 'max';
+          }
+        }
+
+        // Reset mute when alarm goes away
+        if (triggered == null && _alarmTriggered != null) {
+          _muted = false;
+        }
+        _alarmTriggered = triggered;
+
+        if (triggered == null) return const SizedBox.shrink();
+        if (_muted) return const SizedBox.shrink();
+
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.red.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              const Icon(LucideIcons.alertCircle, size: 18, color: Colors.red),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Warning alarm triggered',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'PH value is ${triggered == "min" ? "less" : "greater"} '
+                      'than the ${triggered == "min" ? "minimum" : "maximum"} set value',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.red.shade700,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              FilledButton(
+                onPressed: () {
+                  setState(() => _muted = true);
+                },
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Mute Alarm'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─── Alarm tab (matches AlarmSetup.tsx) ─────────────────────────────────────
 
 class _AlarmTab extends StatefulWidget {
   final Device device;
@@ -1438,7 +2038,7 @@ class _AlarmTabState extends State<_AlarmTab> {
   void initState() {
     super.initState();
     _minController.text = widget.config?.minPh?.toString() ?? '0';
-    _maxController.text = widget.config?.maxPh?.toString() ?? '14';
+    _maxController.text = widget.config?.maxPh?.toString() ?? '0';
   }
 
   Future<void> _saveAlarm() async {
@@ -1472,6 +2072,13 @@ class _AlarmTabState extends State<_AlarmTab> {
     }
   }
 
+  void _resetAlarm() {
+    setState(() {
+      _minController.text = '0';
+      _maxController.text = '0';
+    });
+  }
+
   @override
   void dispose() {
     _minController.dispose();
@@ -1481,48 +2088,78 @@ class _AlarmTabState extends State<_AlarmTab> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Alarm Setup',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Set pH threshold values for alarm monitoring',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: _minController,
-              decoration: const InputDecoration(labelText: 'Min pH'),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _maxController,
-              decoration: const InputDecoration(labelText: 'Max pH'),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: _saveAlarm,
-              icon: const Icon(LucideIcons.save, size: 16),
-              label: const Text('Save Alarm'),
-            ),
-          ],
+    // Centered at 60% width (matching className="mx-auto mt-8 w-full lg:w-3/5")
+    return Center(
+      child: FractionallySizedBox(
+        widthFactor: 0.6,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 32),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Min PH
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Min PH',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            )),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _minController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Max PH
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Max PH',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            )),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _maxController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Save + Reset buttons (matching web app's flex gap-5)
+              FilledButton(
+                onPressed: _saveAlarm,
+                child: const Text('Save'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: _resetAlarm,
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Reset'),
+              ),
+            ],
+          ),
         ),
       ),
     );
