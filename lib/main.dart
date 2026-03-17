@@ -18,7 +18,7 @@ class IoTLabApp extends StatefulWidget {
 }
 
 class _IoTLabAppState extends State<IoTLabApp> {
-  final AuthService _authService = AuthService();
+  final AuthService _authService = AuthService.instance;
   bool _isDark = false;
   bool _initialized = false;
 

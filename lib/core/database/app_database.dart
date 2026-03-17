@@ -1,10 +1,11 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import 'tables.dart';
-// Conditional import: picks native.dart on mobile/desktop, web.dart on web
-import 'connection/unsupported.dart'
-    if (dart.library.ffi) 'connection/native.dart'
-    if (dart.library.js_interop) 'connection/web.dart';
 
 part 'app_database.g.dart';
 
@@ -17,7 +18,7 @@ part 'app_database.g.dart';
   HeaderFooters,
 ])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase._() : super(openConnection());
+  AppDatabase._() : super(_openConnection());
 
   static AppDatabase? _instance;
 
@@ -66,8 +67,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<bool> updateUser(int id, UsersCompanion user) {
-    return (update(users)..where((t) => t.id.equals(id))).write(user).then(
-        (rows) => rows > 0);
+    return (update(users)..where((t) => t.id.equals(id)))
+        .write(user)
+        .then((rows) => rows > 0);
   }
 
   Future<int> deleteUser(int id) {
@@ -106,8 +108,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<bool> updateDevice(int id, DevicesCompanion device) {
-    return (update(devices)..where((t) => t.id.equals(id))).write(device).then(
-        (rows) => rows > 0);
+    return (update(devices)..where((t) => t.id.equals(id)))
+        .write(device)
+        .then((rows) => rows > 0);
   }
 
   Future<int> deleteDevice(int id) {
@@ -214,8 +217,8 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> selectHeaderFooter(int id) async {
     // Deselect all
-    await (update(headerFooters)).write(
-        const HeaderFootersCompanion(selected: Value(false)));
+    await (update(headerFooters))
+        .write(const HeaderFootersCompanion(selected: Value(false)));
     // Select the one
     await (update(headerFooters)..where((t) => t.id.equals(id)))
         .write(const HeaderFootersCompanion(selected: Value(true)));
@@ -224,4 +227,12 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteHeaderFooter(int id) {
     return (delete(headerFooters)..where((t) => t.id.equals(id))).go();
   }
+}
+
+LazyDatabase _openConnection() {
+  return LazyDatabase(() async {
+    final dbFolder = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dbFolder.path, 'iot_lab.db'));
+    return NativeDatabase.createInBackground(file);
+  });
 }

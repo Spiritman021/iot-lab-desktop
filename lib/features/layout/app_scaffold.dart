@@ -34,7 +34,7 @@ class AppScaffoldState extends State<AppScaffold> {
   @override
   void initState() {
     super.initState();
-    _authService = AuthService();
+    _authService = AuthService.instance;
     _mqttService = MqttService();
 
     // Initialize auth and MQTT

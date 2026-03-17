@@ -292,7 +292,7 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
 
     setState(() => _loading = true);
     try {
-      final authService = AuthService();
+      final authService = AuthService.instance;
       await authService.register(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),

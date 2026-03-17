@@ -8,6 +8,15 @@ import '../database/app_database.dart';
 /// Auth service — replaces backend's user.service.ts JWT auth.
 /// Uses local SQLite + bcrypt with SharedPreferences for session persistence.
 class AuthService extends ChangeNotifier {
+  AuthService._();
+
+  static AuthService? _instance;
+
+  static AuthService get instance {
+    _instance ??= AuthService._();
+    return _instance!;
+  }
+
   final AppDatabase _db = AppDatabase.instance;
 
   User? _currentUser;
