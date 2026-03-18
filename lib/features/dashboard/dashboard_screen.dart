@@ -381,18 +381,17 @@ class _CalibrationTab extends StatefulWidget {
 class _CalibrationTabState extends State<_CalibrationTab> {
   final AppDatabase _db = AppDatabase.instance;
 
-  // Local state mirroring web app's calibrateFor
+  // Local state mirroring web app's calibrateFor = { index, started }
   int _calibrateIndex = 0;
   bool _calibrateStarted = false;
 
-  // Local mutable copy of config & rows (matching web app's useState(deviceConfig))
+  // Local mutable copy of config & rows
   late String _mode;
   late String? _probe;
   late List<_CalRow> _localRows;
 
-  // Timer
-  bool _timerActive = false;
-  int _timerSeconds = 30;
+  // Timer (45 seconds per buffer)
+  int _timerSeconds = 45;
   Timer? _timer;
 
   // MQTT listener
@@ -425,15 +424,28 @@ class _CalibrationTabState extends State<_CalibrationTab> {
       final deviceId = widget.device.deviceId;
 
       // Listen for CAL_LOG trigger (matching web app's useEffect on calibrationTrigger)
-      if (msg.topic == '/$deviceId/CAL_LOG' && msg.payload == '1.00') {
-        if (_calibrateStarted) {
-          _handleCalibrationDataReceived();
+      // Handle both '1.00' and '1' payloads
+      if (msg.topic == '/$deviceId/CAL_LOG') {
+        final p = msg.payload.trim();
+        if ((p == '1.00' || p == '1') && _calibrateStarted) {
+          // Delay slightly to ensure all POST_VAL/TEMP_VAL/SLOPE/MV values
+          // have arrived and been stored in deviceValues before we read them.
+          // This fixes the race condition where CAL_LOG arrives before
+          // the calibration result values.
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted && _calibrateStarted) {
+              _handleCalibrationDataReceived();
+            }
+          });
         }
       }
 
       // Listen for RESET
-      if (msg.topic == '/$deviceId/RESET' && msg.payload == '1.00') {
-        _handleReset();
+      if (msg.topic == '/$deviceId/RESET') {
+        final p = msg.payload.trim();
+        if (p == '1.00' || p == '1') {
+          _handleReset();
+        }
       }
     });
   }
@@ -446,41 +458,51 @@ class _CalibrationTabState extends State<_CalibrationTab> {
     final valueIndex = rowIndex + (_mode == '5' ? 1 : 2);
 
     if (rowIndex < _localRows.length) {
+      // Read calibration result values from MQTT deviceValues
+      final valAfterCal = double.tryParse(
+              values['/$deviceId/POST_VAL_$valueIndex'] ?? '') ??
+          0;
+      final temp = double.tryParse(
+              values['/$deviceId/TEMP_VAL_$valueIndex'] ?? '') ??
+          0;
+      final slope =
+          double.tryParse(values['/$deviceId/SLOPE_$valueIndex'] ?? '') ?? 0;
+      final mv =
+          double.tryParse(values['/$deviceId/MV_$valueIndex'] ?? '') ?? 0;
+      final now = DateTime.now();
+
       setState(() {
         _localRows[rowIndex] = _localRows[rowIndex].copyWith(
-          valAfterCal: double.tryParse(values['/$deviceId/POST_VAL_$valueIndex'] ?? '') ?? 0,
-          temp: double.tryParse(values['/$deviceId/TEMP_VAL_$valueIndex'] ?? '') ?? 0,
-          slope: double.tryParse(values['/$deviceId/SLOPE_$valueIndex'] ?? '') ?? 0,
-          mv: double.tryParse(values['/$deviceId/MV_$valueIndex'] ?? '') ?? 0,
-          time: DateTime.now(),
+          valAfterCal: valAfterCal,
+          temp: temp,
+          slope: slope,
+          mv: mv,
+          time: now,
         );
       });
 
+      // Save THIS row to DB immediately (not just on last row)
+      _saveRowToDB(rowIndex);
+
       final maxIndex = int.parse(_mode) - 1;
 
-      // If last row, save to DB
       if (rowIndex == maxIndex) {
-        _saveCalibrationToDB();
+        // Last row — calibration complete
         widget.onDisableTabsChanged(false);
-      }
-
-      // Advance index
-      if (rowIndex < maxIndex) {
-        setState(() {
-          _calibrateIndex = rowIndex + 1;
-          _calibrateStarted = false;
-          _timerActive = false;
-          _timer?.cancel();
-        });
-        _showSnack('Done. Calibrate the next value.', Colors.blue);
-      } else {
         setState(() {
           _calibrateIndex = 0;
           _calibrateStarted = false;
-          _timerActive = false;
           _timer?.cancel();
         });
         _showSnack('Calibration process complete.', Colors.green);
+      } else {
+        // More rows to calibrate — advance index, stop timer, wait for user to press Start
+        setState(() {
+          _calibrateIndex = rowIndex + 1;
+          _calibrateStarted = false;
+          _timer?.cancel();
+        });
+        _showSnack('Done. Calibrate the next value.', Colors.blue);
       }
     }
   }
@@ -490,14 +512,15 @@ class _CalibrationTabState extends State<_CalibrationTab> {
     setState(() {
       _calibrateIndex = 0;
       _calibrateStarted = false;
-      _timerActive = false;
       _timer?.cancel();
     });
     widget.onRefresh();
   }
 
-  Future<void> _saveCalibrationToDB() async {
-    for (final row in _localRows) {
+  /// Save a single calibration row to the local DB
+  Future<void> _saveRowToDB(int rowIndex) async {
+    final row = _localRows[rowIndex];
+    if (row.id > 0) {
       await _db.updateCalibrationRow(
         row.id,
         CalibrationRowsCompanion(
@@ -509,7 +532,6 @@ class _CalibrationTabState extends State<_CalibrationTab> {
         ),
       );
     }
-    widget.onRefresh();
   }
 
   // ── Button handlers (matching CalibrationTable.tsx) ──
@@ -541,8 +563,7 @@ class _CalibrationTabState extends State<_CalibrationTab> {
     widget.onDisableTabsChanged(true);
     setState(() {
       _calibrateStarted = true;
-      _timerSeconds = 30;
-      _timerActive = true;
+      _timerSeconds = 45;
     });
     _startTimer();
   }
@@ -559,17 +580,20 @@ class _CalibrationTabState extends State<_CalibrationTab> {
     setState(() {
       _calibrateIndex = 0;
       _calibrateStarted = false;
-      _timerActive = false;
       _timer?.cancel();
     });
     widget.onRefresh();
   }
 
   void _onTimerComplete() {
-    // Matching CalibrationTimer's onComplete
+    // Timer finished — send completion signal to device
+    // (matching CalibrationTimer's onComplete → publishToDevice CAL=${valueIndex}1)
     final deviceId = widget.device.deviceId;
     final valueIndex = _calibrateIndex + (_mode == '5' ? 1 : 2);
     widget.mqttService.publishToDevice('/$deviceId/CAL', '${valueIndex}1');
+
+    // Timer UI stays showing "0s" until CAL_LOG arrives
+    // Timer is done, calibrateStarted will be cleared when CAL_LOG arrives
   }
 
   void _startTimer() {
@@ -587,7 +611,8 @@ class _CalibrationTabState extends State<_CalibrationTab> {
   void _showWarningDialog() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Please do not close or navigate or switch tabs until calibration is complete'),
+        content: Text(
+            'Please do not close or navigate or switch tabs until calibration is complete'),
         backgroundColor: Colors.orange,
         duration: Duration(seconds: 4),
       ),
@@ -618,8 +643,8 @@ class _CalibrationTabState extends State<_CalibrationTab> {
     setState(() {
       _mode = newMode;
       _localRows = config.values.asMap().entries.map((e) {
-        // Reuse existing row IDs if available
-        final existingId = e.key < widget.rows.length ? widget.rows[e.key].id : -1;
+        final existingId =
+            e.key < widget.rows.length ? widget.rows[e.key].id : -1;
         return _CalRow(id: existingId, val: e.value);
       }).toList();
     });
@@ -725,6 +750,7 @@ class _CalibrationTabState extends State<_CalibrationTab> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEc = widget.device.type == 'ec';
+    // shouldDisable matches web: calibrateFor?.index !== 0 || calibrateFor?.started
     final shouldDisable = _calibrateIndex != 0 || _calibrateStarted;
     final btnDisable = _mode.isEmpty;
 
@@ -735,15 +761,17 @@ class _CalibrationTabState extends State<_CalibrationTab> {
           // Mode / Probe selectors + action buttons
           Row(
             children: [
-              // Mode selector
-              SizedBox(
-                width: 140,
-                child: DropdownButtonFormField<String>(
-                  initialValue: _mode,
-                  decoration: const InputDecoration(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    isDense: true,
-                  ),
+              // Mode selector — using DropdownButton (not FormField) so value updates reactively
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: theme.colorScheme.outline),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: DropdownButton<String>(
+                  value: _mode,
+                  underline: const SizedBox.shrink(),
+                  isDense: true,
                   items: (isEc ? ['1', '2', '3'] : ['3', '5'])
                       .map((m) => DropdownMenuItem(
                             value: m,
@@ -760,16 +788,19 @@ class _CalibrationTabState extends State<_CalibrationTab> {
               const SizedBox(width: 12),
               // Probe selector (EC only)
               if (isEc)
-                SizedBox(
-                  width: 120,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _probe ?? '0.1k',
-                    decoration: const InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      isDense: true,
-                    ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: theme.colorScheme.outline),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: DropdownButton<String>(
+                    value: _probe ?? '0.1k',
+                    underline: const SizedBox.shrink(),
+                    isDense: true,
                     items: ['0.1k', '1k', '10k']
-                        .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                        .map(
+                            (p) => DropdownMenuItem(value: p, child: Text(p)))
                         .toList(),
                     onChanged: shouldDisable
                         ? null
@@ -779,25 +810,31 @@ class _CalibrationTabState extends State<_CalibrationTab> {
                   ),
                 ),
               const Spacer(),
-              // Action buttons
+              // Action buttons — matching web's button logic exactly:
+              // Reset: disabled={!shouldDisable}
               FilledButton(
                 onPressed: shouldDisable ? _handleResetButton : null,
                 style: FilledButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text('Reset'),
               ),
               const SizedBox(width: 8),
+              // Start: disabled={calibrateFor?.started || btnDisable}
               FilledButton(
-                onPressed: (_calibrateStarted || btnDisable) ? null : _handleStart,
+                onPressed:
+                    (_calibrateStarted || btnDisable) ? null : _handleStart,
                 child: const Text('Start'),
               ),
               const SizedBox(width: 8),
+              // Print: disabled={shouldDisable || btnDisable}
               FilledButton.tonal(
                 onPressed: (shouldDisable || btnDisable) ? null : () {},
                 child: const Text('Print'),
               ),
               const SizedBox(width: 8),
+              // Edit Table: disabled={shouldDisable || btnDisable}
               FilledButton.tonal(
-                onPressed: (shouldDisable || btnDisable) ? null : _showEditTableDialog,
+                onPressed:
+                    (shouldDisable || btnDisable) ? null : _showEditTableDialog,
                 child: const Text('Edit Table'),
               ),
             ],
@@ -816,18 +853,21 @@ class _CalibrationTabState extends State<_CalibrationTab> {
               ),
               child: Row(
                 children: [
-                  const Icon(LucideIcons.alertCircle, size: 18, color: Colors.red),
+                  const Icon(LucideIcons.alertCircle,
+                      size: 18, color: Colors.red),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Warning', style: theme.textTheme.labelLarge?.copyWith(
-                              color: Colors.red, fontWeight: FontWeight.bold)),
+                        Text('Warning',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold)),
                         Text(
                           'Please do not close or navigate or switch tabs until calibration is complete',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.red.shade700),
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(color: Colors.red.shade700),
                         ),
                       ],
                     ),
@@ -836,8 +876,8 @@ class _CalibrationTabState extends State<_CalibrationTab> {
               ),
             ),
 
-          // Timer
-          if (_timerActive && _calibrateStarted)
+          // Timer — shown while calibration is started (matching web: calibrateFor?.started)
+          if (_calibrateStarted)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Center(
@@ -858,11 +898,13 @@ class _CalibrationTabState extends State<_CalibrationTab> {
             width: double.infinity,
             child: DataTable(
               headingRowColor: WidgetStateProperty.all(
-                theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                theme.colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.5),
               ),
               columns: [
                 DataColumn(label: Text(isEc ? 'EC' : 'Ph')),
-                DataColumn(label: Text('${isEc ? 'EC' : 'Ph'} After Cal')),
+                DataColumn(
+                    label: Text('${isEc ? 'EC' : 'Ph'} After Cal')),
                 const DataColumn(label: Text('Slope')),
                 const DataColumn(label: Text('Temp')),
                 const DataColumn(label: Text('mV')),
@@ -879,7 +921,7 @@ class _CalibrationTabState extends State<_CalibrationTab> {
                           Colors.blue.withValues(alpha: 0.08))
                       : null,
                   cells: [
-                    // Editable cell (matching EditableCell component)
+                    // Editable cell
                     DataCell(
                       Row(
                         mainAxisSize: MainAxisSize.min,
@@ -907,7 +949,8 @@ class _CalibrationTabState extends State<_CalibrationTab> {
                     DataCell(Text(row.mv?.toString() ?? '-')),
                     DataCell(Text(
                       row.time != null
-                          ? DateFormat('yyyy/MM/dd h:mm:ss a').format(row.time!)
+                          ? DateFormat('yyyy/MM/dd h:mm:ss a')
+                              .format(row.time!)
                           : '-',
                     )),
                   ],
