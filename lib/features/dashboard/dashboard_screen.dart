@@ -458,6 +458,13 @@ class _CalibrationTabState extends State<_CalibrationTab> {
     final valueIndex = rowIndex + (_mode == '5' ? 1 : 2);
 
     if (rowIndex < _localRows.length) {
+      // Debug: Print what MQTT topics we're reading
+      debugPrint('=== CAL DATA for buffer $rowIndex (topic index $valueIndex) ===');
+      debugPrint('POST_VAL_$valueIndex = ${values['/$deviceId/POST_VAL_$valueIndex']}');
+      debugPrint('TEMP_VAL_$valueIndex = ${values['/$deviceId/TEMP_VAL_$valueIndex']}');
+      debugPrint('SLOPE_$valueIndex = ${values['/$deviceId/SLOPE_$valueIndex']}');
+      debugPrint('MV_$valueIndex = ${values['/$deviceId/MV_$valueIndex']}');
+
       // Read calibration result values from MQTT deviceValues
       final valAfterCal = double.tryParse(
               values['/$deviceId/POST_VAL_$valueIndex'] ?? '') ??
@@ -465,8 +472,11 @@ class _CalibrationTabState extends State<_CalibrationTab> {
       final temp = double.tryParse(
               values['/$deviceId/TEMP_VAL_$valueIndex'] ?? '') ??
           0;
-      final slope =
-          double.tryParse(values['/$deviceId/SLOPE_$valueIndex'] ?? '') ?? 0;
+      // Slope for the FIRST buffer (row 0) is always empty
+      // — you need at least 2 points to compute a slope
+      final double? slope = rowIndex == 0
+          ? null
+          : double.tryParse(values['/$deviceId/SLOPE_$valueIndex'] ?? '');
       final mv =
           double.tryParse(values['/$deviceId/MV_$valueIndex'] ?? '') ?? 0;
       final now = DateTime.now();
@@ -944,7 +954,8 @@ class _CalibrationTabState extends State<_CalibrationTab> {
                       ),
                     ),
                     DataCell(Text(row.valAfterCal?.toString() ?? '-')),
-                    DataCell(Text(row.slope?.toString() ?? '-')),
+                    // Slope for first buffer (row 0) is always '--'
+                    DataCell(Text(idx == 0 ? '-' : (row.slope?.toString() ?? '-'))),
                     DataCell(Text(row.temp?.toString() ?? '-')),
                     DataCell(Text(row.mv?.toString() ?? '-')),
                     DataCell(Text(
