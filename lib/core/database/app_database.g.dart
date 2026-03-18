@@ -4582,6 +4582,605 @@ class CompanyDetailsCompanion extends UpdateCompanion<CompanyDetail> {
   }
 }
 
+class $ReportFilesTable extends ReportFiles
+    with TableInfo<$ReportFilesTable, ReportFile> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReportFilesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _fileNameMeta = const VerificationMeta(
+    'fileName',
+  );
+  @override
+  late final GeneratedColumn<String> fileName = GeneratedColumn<String>(
+    'file_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reportTypeMeta = const VerificationMeta(
+    'reportType',
+  );
+  @override
+  late final GeneratedColumn<String> reportType = GeneratedColumn<String>(
+    'report_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deviceTypeMeta = const VerificationMeta(
+    'deviceType',
+  );
+  @override
+  late final GeneratedColumn<String> deviceType = GeneratedColumn<String>(
+    'device_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _filePathMeta = const VerificationMeta(
+    'filePath',
+  );
+  @override
+  late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
+    'file_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fileSizeMeta = const VerificationMeta(
+    'fileSize',
+  );
+  @override
+  late final GeneratedColumn<int> fileSize = GeneratedColumn<int>(
+    'file_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _generatedByMeta = const VerificationMeta(
+    'generatedBy',
+  );
+  @override
+  late final GeneratedColumn<String> generatedBy = GeneratedColumn<String>(
+    'generated_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _formatMeta = const VerificationMeta('format');
+  @override
+  late final GeneratedColumn<String> format = GeneratedColumn<String>(
+    'format',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pdf'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    fileName,
+    reportType,
+    deviceId,
+    deviceType,
+    filePath,
+    fileSize,
+    generatedBy,
+    format,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'report_files';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReportFile> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('file_name')) {
+      context.handle(
+        _fileNameMeta,
+        fileName.isAcceptableOrUnknown(data['file_name']!, _fileNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fileNameMeta);
+    }
+    if (data.containsKey('report_type')) {
+      context.handle(
+        _reportTypeMeta,
+        reportType.isAcceptableOrUnknown(data['report_type']!, _reportTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reportTypeMeta);
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('device_type')) {
+      context.handle(
+        _deviceTypeMeta,
+        deviceType.isAcceptableOrUnknown(data['device_type']!, _deviceTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceTypeMeta);
+    }
+    if (data.containsKey('file_path')) {
+      context.handle(
+        _filePathMeta,
+        filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_filePathMeta);
+    }
+    if (data.containsKey('file_size')) {
+      context.handle(
+        _fileSizeMeta,
+        fileSize.isAcceptableOrUnknown(data['file_size']!, _fileSizeMeta),
+      );
+    }
+    if (data.containsKey('generated_by')) {
+      context.handle(
+        _generatedByMeta,
+        generatedBy.isAcceptableOrUnknown(
+          data['generated_by']!,
+          _generatedByMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_generatedByMeta);
+    }
+    if (data.containsKey('format')) {
+      context.handle(
+        _formatMeta,
+        format.isAcceptableOrUnknown(data['format']!, _formatMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReportFile map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReportFile(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      fileName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_name'],
+      )!,
+      reportType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}report_type'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+      deviceType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_type'],
+      )!,
+      filePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_path'],
+      )!,
+      fileSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}file_size'],
+      )!,
+      generatedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}generated_by'],
+      )!,
+      format: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}format'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ReportFilesTable createAlias(String alias) {
+    return $ReportFilesTable(attachedDatabase, alias);
+  }
+}
+
+class ReportFile extends DataClass implements Insertable<ReportFile> {
+  final int id;
+  final String fileName;
+  final String reportType;
+  final String deviceId;
+  final String deviceType;
+  final String filePath;
+  final int fileSize;
+  final String generatedBy;
+  final String format;
+  final DateTime createdAt;
+  const ReportFile({
+    required this.id,
+    required this.fileName,
+    required this.reportType,
+    required this.deviceId,
+    required this.deviceType,
+    required this.filePath,
+    required this.fileSize,
+    required this.generatedBy,
+    required this.format,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['file_name'] = Variable<String>(fileName);
+    map['report_type'] = Variable<String>(reportType);
+    map['device_id'] = Variable<String>(deviceId);
+    map['device_type'] = Variable<String>(deviceType);
+    map['file_path'] = Variable<String>(filePath);
+    map['file_size'] = Variable<int>(fileSize);
+    map['generated_by'] = Variable<String>(generatedBy);
+    map['format'] = Variable<String>(format);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ReportFilesCompanion toCompanion(bool nullToAbsent) {
+    return ReportFilesCompanion(
+      id: Value(id),
+      fileName: Value(fileName),
+      reportType: Value(reportType),
+      deviceId: Value(deviceId),
+      deviceType: Value(deviceType),
+      filePath: Value(filePath),
+      fileSize: Value(fileSize),
+      generatedBy: Value(generatedBy),
+      format: Value(format),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ReportFile.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReportFile(
+      id: serializer.fromJson<int>(json['id']),
+      fileName: serializer.fromJson<String>(json['fileName']),
+      reportType: serializer.fromJson<String>(json['reportType']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+      deviceType: serializer.fromJson<String>(json['deviceType']),
+      filePath: serializer.fromJson<String>(json['filePath']),
+      fileSize: serializer.fromJson<int>(json['fileSize']),
+      generatedBy: serializer.fromJson<String>(json['generatedBy']),
+      format: serializer.fromJson<String>(json['format']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'fileName': serializer.toJson<String>(fileName),
+      'reportType': serializer.toJson<String>(reportType),
+      'deviceId': serializer.toJson<String>(deviceId),
+      'deviceType': serializer.toJson<String>(deviceType),
+      'filePath': serializer.toJson<String>(filePath),
+      'fileSize': serializer.toJson<int>(fileSize),
+      'generatedBy': serializer.toJson<String>(generatedBy),
+      'format': serializer.toJson<String>(format),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ReportFile copyWith({
+    int? id,
+    String? fileName,
+    String? reportType,
+    String? deviceId,
+    String? deviceType,
+    String? filePath,
+    int? fileSize,
+    String? generatedBy,
+    String? format,
+    DateTime? createdAt,
+  }) => ReportFile(
+    id: id ?? this.id,
+    fileName: fileName ?? this.fileName,
+    reportType: reportType ?? this.reportType,
+    deviceId: deviceId ?? this.deviceId,
+    deviceType: deviceType ?? this.deviceType,
+    filePath: filePath ?? this.filePath,
+    fileSize: fileSize ?? this.fileSize,
+    generatedBy: generatedBy ?? this.generatedBy,
+    format: format ?? this.format,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ReportFile copyWithCompanion(ReportFilesCompanion data) {
+    return ReportFile(
+      id: data.id.present ? data.id.value : this.id,
+      fileName: data.fileName.present ? data.fileName.value : this.fileName,
+      reportType: data.reportType.present
+          ? data.reportType.value
+          : this.reportType,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      deviceType: data.deviceType.present
+          ? data.deviceType.value
+          : this.deviceType,
+      filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      fileSize: data.fileSize.present ? data.fileSize.value : this.fileSize,
+      generatedBy: data.generatedBy.present
+          ? data.generatedBy.value
+          : this.generatedBy,
+      format: data.format.present ? data.format.value : this.format,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReportFile(')
+          ..write('id: $id, ')
+          ..write('fileName: $fileName, ')
+          ..write('reportType: $reportType, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('deviceType: $deviceType, ')
+          ..write('filePath: $filePath, ')
+          ..write('fileSize: $fileSize, ')
+          ..write('generatedBy: $generatedBy, ')
+          ..write('format: $format, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    fileName,
+    reportType,
+    deviceId,
+    deviceType,
+    filePath,
+    fileSize,
+    generatedBy,
+    format,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReportFile &&
+          other.id == this.id &&
+          other.fileName == this.fileName &&
+          other.reportType == this.reportType &&
+          other.deviceId == this.deviceId &&
+          other.deviceType == this.deviceType &&
+          other.filePath == this.filePath &&
+          other.fileSize == this.fileSize &&
+          other.generatedBy == this.generatedBy &&
+          other.format == this.format &&
+          other.createdAt == this.createdAt);
+}
+
+class ReportFilesCompanion extends UpdateCompanion<ReportFile> {
+  final Value<int> id;
+  final Value<String> fileName;
+  final Value<String> reportType;
+  final Value<String> deviceId;
+  final Value<String> deviceType;
+  final Value<String> filePath;
+  final Value<int> fileSize;
+  final Value<String> generatedBy;
+  final Value<String> format;
+  final Value<DateTime> createdAt;
+  const ReportFilesCompanion({
+    this.id = const Value.absent(),
+    this.fileName = const Value.absent(),
+    this.reportType = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.deviceType = const Value.absent(),
+    this.filePath = const Value.absent(),
+    this.fileSize = const Value.absent(),
+    this.generatedBy = const Value.absent(),
+    this.format = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  ReportFilesCompanion.insert({
+    this.id = const Value.absent(),
+    required String fileName,
+    required String reportType,
+    required String deviceId,
+    required String deviceType,
+    required String filePath,
+    this.fileSize = const Value.absent(),
+    required String generatedBy,
+    this.format = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : fileName = Value(fileName),
+       reportType = Value(reportType),
+       deviceId = Value(deviceId),
+       deviceType = Value(deviceType),
+       filePath = Value(filePath),
+       generatedBy = Value(generatedBy);
+  static Insertable<ReportFile> custom({
+    Expression<int>? id,
+    Expression<String>? fileName,
+    Expression<String>? reportType,
+    Expression<String>? deviceId,
+    Expression<String>? deviceType,
+    Expression<String>? filePath,
+    Expression<int>? fileSize,
+    Expression<String>? generatedBy,
+    Expression<String>? format,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (fileName != null) 'file_name': fileName,
+      if (reportType != null) 'report_type': reportType,
+      if (deviceId != null) 'device_id': deviceId,
+      if (deviceType != null) 'device_type': deviceType,
+      if (filePath != null) 'file_path': filePath,
+      if (fileSize != null) 'file_size': fileSize,
+      if (generatedBy != null) 'generated_by': generatedBy,
+      if (format != null) 'format': format,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  ReportFilesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? fileName,
+    Value<String>? reportType,
+    Value<String>? deviceId,
+    Value<String>? deviceType,
+    Value<String>? filePath,
+    Value<int>? fileSize,
+    Value<String>? generatedBy,
+    Value<String>? format,
+    Value<DateTime>? createdAt,
+  }) {
+    return ReportFilesCompanion(
+      id: id ?? this.id,
+      fileName: fileName ?? this.fileName,
+      reportType: reportType ?? this.reportType,
+      deviceId: deviceId ?? this.deviceId,
+      deviceType: deviceType ?? this.deviceType,
+      filePath: filePath ?? this.filePath,
+      fileSize: fileSize ?? this.fileSize,
+      generatedBy: generatedBy ?? this.generatedBy,
+      format: format ?? this.format,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (fileName.present) {
+      map['file_name'] = Variable<String>(fileName.value);
+    }
+    if (reportType.present) {
+      map['report_type'] = Variable<String>(reportType.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (deviceType.present) {
+      map['device_type'] = Variable<String>(deviceType.value);
+    }
+    if (filePath.present) {
+      map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (fileSize.present) {
+      map['file_size'] = Variable<int>(fileSize.value);
+    }
+    if (generatedBy.present) {
+      map['generated_by'] = Variable<String>(generatedBy.value);
+    }
+    if (format.present) {
+      map['format'] = Variable<String>(format.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReportFilesCompanion(')
+          ..write('id: $id, ')
+          ..write('fileName: $fileName, ')
+          ..write('reportType: $reportType, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('deviceType: $deviceType, ')
+          ..write('filePath: $filePath, ')
+          ..write('fileSize: $fileSize, ')
+          ..write('generatedBy: $generatedBy, ')
+          ..write('format: $format, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4594,6 +5193,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LogsTable logs = $LogsTable(this);
   late final $HeaderFootersTable headerFooters = $HeaderFootersTable(this);
   late final $CompanyDetailsTable companyDetails = $CompanyDetailsTable(this);
+  late final $ReportFilesTable reportFiles = $ReportFilesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4606,6 +5206,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     logs,
     headerFooters,
     companyDetails,
+    reportFiles,
   ];
 }
 
@@ -7456,6 +8057,301 @@ typedef $$CompanyDetailsTableProcessedTableManager =
       CompanyDetail,
       PrefetchHooks Function()
     >;
+typedef $$ReportFilesTableCreateCompanionBuilder =
+    ReportFilesCompanion Function({
+      Value<int> id,
+      required String fileName,
+      required String reportType,
+      required String deviceId,
+      required String deviceType,
+      required String filePath,
+      Value<int> fileSize,
+      required String generatedBy,
+      Value<String> format,
+      Value<DateTime> createdAt,
+    });
+typedef $$ReportFilesTableUpdateCompanionBuilder =
+    ReportFilesCompanion Function({
+      Value<int> id,
+      Value<String> fileName,
+      Value<String> reportType,
+      Value<String> deviceId,
+      Value<String> deviceType,
+      Value<String> filePath,
+      Value<int> fileSize,
+      Value<String> generatedBy,
+      Value<String> format,
+      Value<DateTime> createdAt,
+    });
+
+class $$ReportFilesTableFilterComposer
+    extends Composer<_$AppDatabase, $ReportFilesTable> {
+  $$ReportFilesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fileName => $composableBuilder(
+    column: $table.fileName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reportType => $composableBuilder(
+    column: $table.reportType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceType => $composableBuilder(
+    column: $table.deviceType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fileSize => $composableBuilder(
+    column: $table.fileSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get generatedBy => $composableBuilder(
+    column: $table.generatedBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get format => $composableBuilder(
+    column: $table.format,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReportFilesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReportFilesTable> {
+  $$ReportFilesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fileName => $composableBuilder(
+    column: $table.fileName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reportType => $composableBuilder(
+    column: $table.reportType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceType => $composableBuilder(
+    column: $table.deviceType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fileSize => $composableBuilder(
+    column: $table.fileSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get generatedBy => $composableBuilder(
+    column: $table.generatedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get format => $composableBuilder(
+    column: $table.format,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReportFilesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReportFilesTable> {
+  $$ReportFilesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get fileName =>
+      $composableBuilder(column: $table.fileName, builder: (column) => column);
+
+  GeneratedColumn<String> get reportType => $composableBuilder(
+    column: $table.reportType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceType => $composableBuilder(
+    column: $table.deviceType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get filePath =>
+      $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<int> get fileSize =>
+      $composableBuilder(column: $table.fileSize, builder: (column) => column);
+
+  GeneratedColumn<String> get generatedBy => $composableBuilder(
+    column: $table.generatedBy,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get format =>
+      $composableBuilder(column: $table.format, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ReportFilesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReportFilesTable,
+          ReportFile,
+          $$ReportFilesTableFilterComposer,
+          $$ReportFilesTableOrderingComposer,
+          $$ReportFilesTableAnnotationComposer,
+          $$ReportFilesTableCreateCompanionBuilder,
+          $$ReportFilesTableUpdateCompanionBuilder,
+          (
+            ReportFile,
+            BaseReferences<_$AppDatabase, $ReportFilesTable, ReportFile>,
+          ),
+          ReportFile,
+          PrefetchHooks Function()
+        > {
+  $$ReportFilesTableTableManager(_$AppDatabase db, $ReportFilesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReportFilesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReportFilesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReportFilesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> fileName = const Value.absent(),
+                Value<String> reportType = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<String> deviceType = const Value.absent(),
+                Value<String> filePath = const Value.absent(),
+                Value<int> fileSize = const Value.absent(),
+                Value<String> generatedBy = const Value.absent(),
+                Value<String> format = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => ReportFilesCompanion(
+                id: id,
+                fileName: fileName,
+                reportType: reportType,
+                deviceId: deviceId,
+                deviceType: deviceType,
+                filePath: filePath,
+                fileSize: fileSize,
+                generatedBy: generatedBy,
+                format: format,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String fileName,
+                required String reportType,
+                required String deviceId,
+                required String deviceType,
+                required String filePath,
+                Value<int> fileSize = const Value.absent(),
+                required String generatedBy,
+                Value<String> format = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => ReportFilesCompanion.insert(
+                id: id,
+                fileName: fileName,
+                reportType: reportType,
+                deviceId: deviceId,
+                deviceType: deviceType,
+                filePath: filePath,
+                fileSize: fileSize,
+                generatedBy: generatedBy,
+                format: format,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReportFilesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReportFilesTable,
+      ReportFile,
+      $$ReportFilesTableFilterComposer,
+      $$ReportFilesTableOrderingComposer,
+      $$ReportFilesTableAnnotationComposer,
+      $$ReportFilesTableCreateCompanionBuilder,
+      $$ReportFilesTableUpdateCompanionBuilder,
+      (
+        ReportFile,
+        BaseReferences<_$AppDatabase, $ReportFilesTable, ReportFile>,
+      ),
+      ReportFile,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7473,4 +8369,6 @@ class $AppDatabaseManager {
       $$HeaderFootersTableTableManager(_db, _db.headerFooters);
   $$CompanyDetailsTableTableManager get companyDetails =>
       $$CompanyDetailsTableTableManager(_db, _db.companyDetails);
+  $$ReportFilesTableTableManager get reportFiles =>
+      $$ReportFilesTableTableManager(_db, _db.reportFiles);
 }

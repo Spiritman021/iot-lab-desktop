@@ -137,6 +137,9 @@ class AppScaffoldState extends State<AppScaffold> {
         context.go('/');
         break;
       case 1:
+        context.go('/files');
+        break;
+      case 2:
         context.go('/settings/admin');
         break;
     }
@@ -161,6 +164,10 @@ class AppScaffoldState extends State<AppScaffold> {
         icon: Icon(LucideIcons.home),
         label: Text('Dashboard'),
       ),
+      const NavigationRailDestination(
+        icon: Icon(LucideIcons.folderOpen),
+        label: Text('Files'),
+      ),
       if (isAdmin)
         const NavigationRailDestination(
           icon: Icon(LucideIcons.shieldCheck),
@@ -169,8 +176,10 @@ class AppScaffoldState extends State<AppScaffold> {
     ];
 
     int currentIndex = 0;
-    if (isAdmin && location.startsWith('/settings')) {
+    if (location.startsWith('/files')) {
       currentIndex = 1;
+    } else if (isAdmin && location.startsWith('/settings')) {
+      currentIndex = 2;
     }
     if (currentIndex != _selectedIndex) {
       _selectedIndex = currentIndex;

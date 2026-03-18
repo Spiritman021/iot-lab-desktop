@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
+import '../features/files/file_manager_screen.dart';
 import '../features/homepage/homepage_screen.dart';
 import '../features/layout/app_scaffold.dart';
 import '../features/settings/admin_settings_screen.dart';
@@ -54,6 +55,10 @@ GoRouter createRouter(AuthService authService) {
           GoRoute(
             path: '/settings/admin',
             builder: (context, state) => const AdminSettingsScreen(),
+          ),
+          GoRoute(
+            path: '/files',
+            builder: (context, state) => const FileManagerScreen(),
           ),
         ],
       ),

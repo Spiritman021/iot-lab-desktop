@@ -17,6 +17,7 @@ part 'app_database.g.dart';
   Logs,
   HeaderFooters,
   CompanyDetails,
+  ReportFiles,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase._() : super(_openConnection());
@@ -29,7 +30,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -58,6 +59,22 @@ class AppDatabase extends _$AppDatabase {
                 gst_no TEXT NOT NULL DEFAULT '',
                 logo_path TEXT,
                 updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+              )
+            ''');
+          }
+          if (from < 6) {
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS report_files (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                file_name TEXT NOT NULL,
+                report_type TEXT NOT NULL,
+                device_id TEXT NOT NULL,
+                device_type TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                file_size INTEGER NOT NULL DEFAULT 0,
+                generated_by TEXT NOT NULL,
+                format TEXT NOT NULL DEFAULT 'pdf',
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
               )
             ''');
           }
@@ -283,6 +300,29 @@ class AppDatabase extends _$AppDatabase {
     } else {
       await into(companyDetails).insert(data);
     }
+  }
+
+  // ── Report Files ──
+
+  Future<List<ReportFile>> getAllReportFiles() {
+    return (select(reportFiles)
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .get();
+  }
+
+  Future<List<ReportFile>> getReportFilesByType(String type) {
+    return (select(reportFiles)
+          ..where((t) => t.reportType.equals(type))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .get();
+  }
+
+  Future<int> insertReportFile(ReportFilesCompanion data) {
+    return into(reportFiles).insert(data);
+  }
+
+  Future<int> deleteReportFile(int id) {
+    return (delete(reportFiles)..where((t) => t.id.equals(id))).go();
   }
 }
 

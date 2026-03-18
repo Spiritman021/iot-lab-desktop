@@ -1,7 +1,10 @@
-import 'dart:typed_data';
+import 'dart:io';
 
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -104,7 +107,16 @@ class ReportService {
         ],
       ),
     );
-    await _showPrintPreview(context, pdf, 'Calibration_Report_$deviceId');
+    final savedPath = await _saveAndRecord(
+      pdf: pdf,
+      fileName: 'Calibration_Report_$deviceId',
+      reportType: 'calibration',
+      deviceId: deviceId,
+      deviceType: deviceType,
+    );
+    if (context.mounted) {
+      await _showPrintPreview(context, pdf, savedPath.$2);
+    }
   }
 
   // ─── Logs Report ─────────────────────────────────────────────────────────
@@ -185,7 +197,16 @@ class ReportService {
         ],
       ),
     );
-    await _showPrintPreview(context, pdf, 'Log_Report_$deviceId');
+    final savedPath = await _saveAndRecord(
+      pdf: pdf,
+      fileName: 'Log_Report_$deviceId',
+      reportType: 'log',
+      deviceId: deviceId,
+      deviceType: deviceType,
+    );
+    if (context.mounted) {
+      await _showPrintPreview(context, pdf, savedPath.$2);
+    }
   }
 
   // ─── Graph Report ────────────────────────────────────────────────────────
@@ -241,7 +262,16 @@ class ReportService {
         },
       ),
     );
-    await _showPrintPreview(context, pdf, 'Graph_Report_$deviceId');
+    final savedPath = await _saveAndRecord(
+      pdf: pdf,
+      fileName: 'Graph_Report_$deviceId',
+      reportType: 'graph',
+      deviceId: deviceId,
+      deviceType: deviceType,
+    );
+    if (context.mounted) {
+      await _showPrintPreview(context, pdf, savedPath.$2);
+    }
   }
 
   // ─── Shared Builders ────────────────────────────────────────────────────
@@ -419,6 +449,43 @@ class ReportService {
         ),
       ],
     );
+  }
+
+  /// Save PDF to disk and record in DB. Returns (filePath, displayName).
+  static Future<(String, String)> _saveAndRecord({
+    required pw.Document pdf,
+    required String fileName,
+    required String reportType,
+    required String deviceId,
+    required String deviceType,
+  }) async {
+    final bytes = await pdf.save();
+
+    // Save to documents/reports/
+    final docsDir = await getApplicationDocumentsDirectory();
+    final reportsDir = Directory(p.join(docsDir.path, 'iot_lab_reports'));
+    if (!reportsDir.existsSync()) reportsDir.createSync(recursive: true);
+
+    final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+    final fullName = '${fileName}_$timestamp.pdf';
+    final filePath = p.join(reportsDir.path, fullName);
+    final file = File(filePath);
+    await file.writeAsBytes(bytes);
+
+    // Record in DB
+    final user = AuthService.instance.currentUser;
+    await AppDatabase.instance.insertReportFile(ReportFilesCompanion(
+      fileName: Value(fullName),
+      reportType: Value(reportType),
+      deviceId: Value(deviceId),
+      deviceType: Value(deviceType),
+      filePath: Value(filePath),
+      fileSize: Value(bytes.length),
+      generatedBy: Value(user?.name ?? 'Unknown'),
+      format: const Value('pdf'),
+    ));
+
+    return (filePath, fullName);
   }
 
   /// Show print preview dialog

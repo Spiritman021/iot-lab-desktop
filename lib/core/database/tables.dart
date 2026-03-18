@@ -124,3 +124,18 @@ class CompanyDetails extends Table {
   DateTimeColumn get updatedAt =>
       dateTime().withDefault(currentDateAndTime)();
 }
+
+/// Report files — stores metadata for all generated PDFs/CSVs
+class ReportFiles extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get fileName => text()();
+  TextColumn get reportType => text()(); // 'calibration', 'log', 'graph'
+  TextColumn get deviceId => text()();
+  TextColumn get deviceType => text()();
+  TextColumn get filePath => text()();
+  IntColumn get fileSize => integer().withDefault(const Constant(0))();
+  TextColumn get generatedBy => text()();
+  TextColumn get format => text().withDefault(const Constant('pdf'))(); // 'pdf' or 'csv'
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
+}
