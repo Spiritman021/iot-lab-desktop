@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/mqtt/mqtt_service.dart';
+import 'company_details_screen.dart';
 import 'manage_devices_screen.dart';
 import 'manage_header_footer_screen.dart';
 import 'manage_users_screen.dart';
@@ -197,7 +198,7 @@ class _AdminTabbedBodyState extends State<_AdminTabbedBody>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -250,6 +251,10 @@ class _AdminTabbedBodyState extends State<_AdminTabbedBody>
                     icon: Icon(LucideIcons.fileText, size: 16),
                     text: 'Setup',
                   ),
+                  Tab(
+                    icon: Icon(LucideIcons.building2, size: 16),
+                    text: 'Company',
+                  ),
                 ],
               ),
             ],
@@ -264,6 +269,7 @@ class _AdminTabbedBodyState extends State<_AdminTabbedBody>
               ManageDevicesScreen(),
               ManageUsersScreen(),
               ManageHeaderFooterScreen(),
+              CompanyDetailsScreen(),
             ],
           ),
         ),

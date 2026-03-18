@@ -110,3 +110,17 @@ class HeaderFooters extends Table {
   DateTimeColumn get updatedAt =>
       dateTime().withDefault(currentDateAndTime)();
 }
+
+/// Company details — singleton configuration for reports
+class CompanyDetails extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get companyName => text().withDefault(const Constant(''))();
+  TextColumn get address => text().withDefault(const Constant(''))();
+  TextColumn get phone => text().withDefault(const Constant(''))();
+  TextColumn get email => text().withDefault(const Constant(''))();
+  TextColumn get website => text().withDefault(const Constant(''))();
+  TextColumn get gstNo => text().withDefault(const Constant(''))();
+  TextColumn get logoPath => text().nullable()();
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+}

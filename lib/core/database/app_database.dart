@@ -16,6 +16,7 @@ part 'app_database.g.dart';
   CalibrationRows,
   Logs,
   HeaderFooters,
+  CompanyDetails,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase._() : super(_openConnection());
@@ -28,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -44,6 +45,21 @@ class AppDatabase extends _$AppDatabase {
           if (from < 4) {
             await customStatement(
                 "ALTER TABLE users ADD COLUMN session_duration INTEGER NOT NULL DEFAULT 30");
+          }
+          if (from < 5) {
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS company_details (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_name TEXT NOT NULL DEFAULT '',
+                address TEXT NOT NULL DEFAULT '',
+                phone TEXT NOT NULL DEFAULT '',
+                email TEXT NOT NULL DEFAULT '',
+                website TEXT NOT NULL DEFAULT '',
+                gst_no TEXT NOT NULL DEFAULT '',
+                logo_path TEXT,
+                updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+              )
+            ''');
           }
         },
       );
@@ -250,6 +266,23 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteHeaderFooter(int id) {
     return (delete(headerFooters)..where((t) => t.id.equals(id))).go();
+  }
+
+  // ── Company Details (singleton) ──
+
+  Future<CompanyDetail?> getCompanyDetails() async {
+    final rows = await select(companyDetails).get();
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  Future<void> upsertCompanyDetails(CompanyDetailsCompanion data) async {
+    final existing = await getCompanyDetails();
+    if (existing != null) {
+      await (update(companyDetails)..where((t) => t.id.equals(existing.id)))
+          .write(data);
+    } else {
+      await into(companyDetails).insert(data);
+    }
   }
 }
 

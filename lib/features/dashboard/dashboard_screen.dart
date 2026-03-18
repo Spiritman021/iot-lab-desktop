@@ -11,6 +11,7 @@ import '../../core/auth/auth_service.dart';
 import '../../core/constants.dart';
 import '../../core/database/app_database.dart';
 import '../../core/mqtt/mqtt_service.dart';
+import '../../core/reports/report_service.dart';
 import '../layout/app_scaffold.dart';
 
 /// Dashboard screen — matches web app's Dashboard.tsx with tabs:
@@ -804,7 +805,27 @@ class _CalibrationTabState extends State<_CalibrationTab> {
               const SizedBox(width: 8),
               // Print: allowed for admin + lab tech (not viewer)
               FilledButton.tonal(
-                onPressed: (shouldDisable || btnDisable || isViewer) ? null : () {},
+                onPressed: (shouldDisable || btnDisable || isViewer) ? null : () {
+                  ReportService.printCalibrationReport(
+                    context: context,
+                    deviceId: widget.device.deviceId,
+                    deviceType: widget.device.type,
+                    mode: widget.device.mode,
+                    rows: _localRows.map((r) => CalibrationRow(
+                      id: r.id,
+                      configId: 0,
+                      val: r.val,
+                      valAfterCal: r.valAfterCal,
+                      slope: r.slope,
+                      temp: r.temp,
+                      mv: r.mv,
+                      minMv: r.minMv,
+                      maxMv: r.maxMv,
+                      time: r.time,
+                    )).toList(),
+                    probe: _probe,
+                  );
+                },
                 child: const Text('Print'),
               ),
               const SizedBox(width: 8),
@@ -1507,14 +1528,25 @@ class _LogTabState extends State<_LogTab> {
               PopupMenuButton<String>(
                 enabled: !_disabled && canDoLog,
                 onSelected: (val) {
-                  // Export placeholder
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Export $val - coming soon')),
-                  );
+                  if (val == 'Pdf') {
+                    ReportService.printLogsReport(
+                      context: context,
+                      deviceId: widget.device.deviceId,
+                      deviceType: widget.device.type,
+                      logs: widget.logs,
+                      product: _productController.text,
+                      batchNo: _batchNoController.text,
+                      arNo: _arNoController.text,
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Export $val - coming soon')),
+                    );
+                  }
                 },
                 itemBuilder: (ctx) => [
-                  const PopupMenuItem(value: 'All', child: Text('All')),
-                  const PopupMenuItem(value: 'Pdf', child: Text('Pdf')),
+                  const PopupMenuItem(value: 'Pdf', child: Text('Export PDF')),
+                  const PopupMenuItem(value: 'All', child: Text('Export All')),
                 ],
                 child: FilledButton.tonal(
                   onPressed: (_disabled || !canDoLog) ? null : () {},

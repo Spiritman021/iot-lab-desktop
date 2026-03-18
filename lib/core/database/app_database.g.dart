@@ -4045,6 +4045,543 @@ class HeaderFootersCompanion extends UpdateCompanion<HeaderFooter> {
   }
 }
 
+class $CompanyDetailsTable extends CompanyDetails
+    with TableInfo<$CompanyDetailsTable, CompanyDetail> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CompanyDetailsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _companyNameMeta = const VerificationMeta(
+    'companyName',
+  );
+  @override
+  late final GeneratedColumn<String> companyName = GeneratedColumn<String>(
+    'company_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _addressMeta = const VerificationMeta(
+    'address',
+  );
+  @override
+  late final GeneratedColumn<String> address = GeneratedColumn<String>(
+    'address',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _phoneMeta = const VerificationMeta('phone');
+  @override
+  late final GeneratedColumn<String> phone = GeneratedColumn<String>(
+    'phone',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
+  @override
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _websiteMeta = const VerificationMeta(
+    'website',
+  );
+  @override
+  late final GeneratedColumn<String> website = GeneratedColumn<String>(
+    'website',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _gstNoMeta = const VerificationMeta('gstNo');
+  @override
+  late final GeneratedColumn<String> gstNo = GeneratedColumn<String>(
+    'gst_no',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _logoPathMeta = const VerificationMeta(
+    'logoPath',
+  );
+  @override
+  late final GeneratedColumn<String> logoPath = GeneratedColumn<String>(
+    'logo_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyName,
+    address,
+    phone,
+    email,
+    website,
+    gstNo,
+    logoPath,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'company_details';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CompanyDetail> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('company_name')) {
+      context.handle(
+        _companyNameMeta,
+        companyName.isAcceptableOrUnknown(
+          data['company_name']!,
+          _companyNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('address')) {
+      context.handle(
+        _addressMeta,
+        address.isAcceptableOrUnknown(data['address']!, _addressMeta),
+      );
+    }
+    if (data.containsKey('phone')) {
+      context.handle(
+        _phoneMeta,
+        phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta),
+      );
+    }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    }
+    if (data.containsKey('website')) {
+      context.handle(
+        _websiteMeta,
+        website.isAcceptableOrUnknown(data['website']!, _websiteMeta),
+      );
+    }
+    if (data.containsKey('gst_no')) {
+      context.handle(
+        _gstNoMeta,
+        gstNo.isAcceptableOrUnknown(data['gst_no']!, _gstNoMeta),
+      );
+    }
+    if (data.containsKey('logo_path')) {
+      context.handle(
+        _logoPathMeta,
+        logoPath.isAcceptableOrUnknown(data['logo_path']!, _logoPathMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CompanyDetail map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CompanyDetail(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      companyName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_name'],
+      )!,
+      address: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}address'],
+      )!,
+      phone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}phone'],
+      )!,
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      )!,
+      website: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}website'],
+      )!,
+      gstNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}gst_no'],
+      )!,
+      logoPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}logo_path'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CompanyDetailsTable createAlias(String alias) {
+    return $CompanyDetailsTable(attachedDatabase, alias);
+  }
+}
+
+class CompanyDetail extends DataClass implements Insertable<CompanyDetail> {
+  final int id;
+  final String companyName;
+  final String address;
+  final String phone;
+  final String email;
+  final String website;
+  final String gstNo;
+  final String? logoPath;
+  final DateTime updatedAt;
+  const CompanyDetail({
+    required this.id,
+    required this.companyName,
+    required this.address,
+    required this.phone,
+    required this.email,
+    required this.website,
+    required this.gstNo,
+    this.logoPath,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['company_name'] = Variable<String>(companyName);
+    map['address'] = Variable<String>(address);
+    map['phone'] = Variable<String>(phone);
+    map['email'] = Variable<String>(email);
+    map['website'] = Variable<String>(website);
+    map['gst_no'] = Variable<String>(gstNo);
+    if (!nullToAbsent || logoPath != null) {
+      map['logo_path'] = Variable<String>(logoPath);
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CompanyDetailsCompanion toCompanion(bool nullToAbsent) {
+    return CompanyDetailsCompanion(
+      id: Value(id),
+      companyName: Value(companyName),
+      address: Value(address),
+      phone: Value(phone),
+      email: Value(email),
+      website: Value(website),
+      gstNo: Value(gstNo),
+      logoPath: logoPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(logoPath),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CompanyDetail.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CompanyDetail(
+      id: serializer.fromJson<int>(json['id']),
+      companyName: serializer.fromJson<String>(json['companyName']),
+      address: serializer.fromJson<String>(json['address']),
+      phone: serializer.fromJson<String>(json['phone']),
+      email: serializer.fromJson<String>(json['email']),
+      website: serializer.fromJson<String>(json['website']),
+      gstNo: serializer.fromJson<String>(json['gstNo']),
+      logoPath: serializer.fromJson<String?>(json['logoPath']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'companyName': serializer.toJson<String>(companyName),
+      'address': serializer.toJson<String>(address),
+      'phone': serializer.toJson<String>(phone),
+      'email': serializer.toJson<String>(email),
+      'website': serializer.toJson<String>(website),
+      'gstNo': serializer.toJson<String>(gstNo),
+      'logoPath': serializer.toJson<String?>(logoPath),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CompanyDetail copyWith({
+    int? id,
+    String? companyName,
+    String? address,
+    String? phone,
+    String? email,
+    String? website,
+    String? gstNo,
+    Value<String?> logoPath = const Value.absent(),
+    DateTime? updatedAt,
+  }) => CompanyDetail(
+    id: id ?? this.id,
+    companyName: companyName ?? this.companyName,
+    address: address ?? this.address,
+    phone: phone ?? this.phone,
+    email: email ?? this.email,
+    website: website ?? this.website,
+    gstNo: gstNo ?? this.gstNo,
+    logoPath: logoPath.present ? logoPath.value : this.logoPath,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CompanyDetail copyWithCompanion(CompanyDetailsCompanion data) {
+    return CompanyDetail(
+      id: data.id.present ? data.id.value : this.id,
+      companyName: data.companyName.present
+          ? data.companyName.value
+          : this.companyName,
+      address: data.address.present ? data.address.value : this.address,
+      phone: data.phone.present ? data.phone.value : this.phone,
+      email: data.email.present ? data.email.value : this.email,
+      website: data.website.present ? data.website.value : this.website,
+      gstNo: data.gstNo.present ? data.gstNo.value : this.gstNo,
+      logoPath: data.logoPath.present ? data.logoPath.value : this.logoPath,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CompanyDetail(')
+          ..write('id: $id, ')
+          ..write('companyName: $companyName, ')
+          ..write('address: $address, ')
+          ..write('phone: $phone, ')
+          ..write('email: $email, ')
+          ..write('website: $website, ')
+          ..write('gstNo: $gstNo, ')
+          ..write('logoPath: $logoPath, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyName,
+    address,
+    phone,
+    email,
+    website,
+    gstNo,
+    logoPath,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CompanyDetail &&
+          other.id == this.id &&
+          other.companyName == this.companyName &&
+          other.address == this.address &&
+          other.phone == this.phone &&
+          other.email == this.email &&
+          other.website == this.website &&
+          other.gstNo == this.gstNo &&
+          other.logoPath == this.logoPath &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CompanyDetailsCompanion extends UpdateCompanion<CompanyDetail> {
+  final Value<int> id;
+  final Value<String> companyName;
+  final Value<String> address;
+  final Value<String> phone;
+  final Value<String> email;
+  final Value<String> website;
+  final Value<String> gstNo;
+  final Value<String?> logoPath;
+  final Value<DateTime> updatedAt;
+  const CompanyDetailsCompanion({
+    this.id = const Value.absent(),
+    this.companyName = const Value.absent(),
+    this.address = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.email = const Value.absent(),
+    this.website = const Value.absent(),
+    this.gstNo = const Value.absent(),
+    this.logoPath = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  CompanyDetailsCompanion.insert({
+    this.id = const Value.absent(),
+    this.companyName = const Value.absent(),
+    this.address = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.email = const Value.absent(),
+    this.website = const Value.absent(),
+    this.gstNo = const Value.absent(),
+    this.logoPath = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  static Insertable<CompanyDetail> custom({
+    Expression<int>? id,
+    Expression<String>? companyName,
+    Expression<String>? address,
+    Expression<String>? phone,
+    Expression<String>? email,
+    Expression<String>? website,
+    Expression<String>? gstNo,
+    Expression<String>? logoPath,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyName != null) 'company_name': companyName,
+      if (address != null) 'address': address,
+      if (phone != null) 'phone': phone,
+      if (email != null) 'email': email,
+      if (website != null) 'website': website,
+      if (gstNo != null) 'gst_no': gstNo,
+      if (logoPath != null) 'logo_path': logoPath,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  CompanyDetailsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? companyName,
+    Value<String>? address,
+    Value<String>? phone,
+    Value<String>? email,
+    Value<String>? website,
+    Value<String>? gstNo,
+    Value<String?>? logoPath,
+    Value<DateTime>? updatedAt,
+  }) {
+    return CompanyDetailsCompanion(
+      id: id ?? this.id,
+      companyName: companyName ?? this.companyName,
+      address: address ?? this.address,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      website: website ?? this.website,
+      gstNo: gstNo ?? this.gstNo,
+      logoPath: logoPath ?? this.logoPath,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (companyName.present) {
+      map['company_name'] = Variable<String>(companyName.value);
+    }
+    if (address.present) {
+      map['address'] = Variable<String>(address.value);
+    }
+    if (phone.present) {
+      map['phone'] = Variable<String>(phone.value);
+    }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
+    }
+    if (website.present) {
+      map['website'] = Variable<String>(website.value);
+    }
+    if (gstNo.present) {
+      map['gst_no'] = Variable<String>(gstNo.value);
+    }
+    if (logoPath.present) {
+      map['logo_path'] = Variable<String>(logoPath.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CompanyDetailsCompanion(')
+          ..write('id: $id, ')
+          ..write('companyName: $companyName, ')
+          ..write('address: $address, ')
+          ..write('phone: $phone, ')
+          ..write('email: $email, ')
+          ..write('website: $website, ')
+          ..write('gstNo: $gstNo, ')
+          ..write('logoPath: $logoPath, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4056,6 +4593,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $LogsTable logs = $LogsTable(this);
   late final $HeaderFootersTable headerFooters = $HeaderFootersTable(this);
+  late final $CompanyDetailsTable companyDetails = $CompanyDetailsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4067,6 +4605,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     calibrationRows,
     logs,
     headerFooters,
+    companyDetails,
   ];
 }
 
@@ -6643,6 +7182,280 @@ typedef $$HeaderFootersTableProcessedTableManager =
       HeaderFooter,
       PrefetchHooks Function()
     >;
+typedef $$CompanyDetailsTableCreateCompanionBuilder =
+    CompanyDetailsCompanion Function({
+      Value<int> id,
+      Value<String> companyName,
+      Value<String> address,
+      Value<String> phone,
+      Value<String> email,
+      Value<String> website,
+      Value<String> gstNo,
+      Value<String?> logoPath,
+      Value<DateTime> updatedAt,
+    });
+typedef $$CompanyDetailsTableUpdateCompanionBuilder =
+    CompanyDetailsCompanion Function({
+      Value<int> id,
+      Value<String> companyName,
+      Value<String> address,
+      Value<String> phone,
+      Value<String> email,
+      Value<String> website,
+      Value<String> gstNo,
+      Value<String?> logoPath,
+      Value<DateTime> updatedAt,
+    });
+
+class $$CompanyDetailsTableFilterComposer
+    extends Composer<_$AppDatabase, $CompanyDetailsTable> {
+  $$CompanyDetailsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyName => $composableBuilder(
+    column: $table.companyName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get address => $composableBuilder(
+    column: $table.address,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get website => $composableBuilder(
+    column: $table.website,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get gstNo => $composableBuilder(
+    column: $table.gstNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get logoPath => $composableBuilder(
+    column: $table.logoPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CompanyDetailsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CompanyDetailsTable> {
+  $$CompanyDetailsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyName => $composableBuilder(
+    column: $table.companyName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get address => $composableBuilder(
+    column: $table.address,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get website => $composableBuilder(
+    column: $table.website,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get gstNo => $composableBuilder(
+    column: $table.gstNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get logoPath => $composableBuilder(
+    column: $table.logoPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CompanyDetailsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CompanyDetailsTable> {
+  $$CompanyDetailsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyName => $composableBuilder(
+    column: $table.companyName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get address =>
+      $composableBuilder(column: $table.address, builder: (column) => column);
+
+  GeneratedColumn<String> get phone =>
+      $composableBuilder(column: $table.phone, builder: (column) => column);
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get website =>
+      $composableBuilder(column: $table.website, builder: (column) => column);
+
+  GeneratedColumn<String> get gstNo =>
+      $composableBuilder(column: $table.gstNo, builder: (column) => column);
+
+  GeneratedColumn<String> get logoPath =>
+      $composableBuilder(column: $table.logoPath, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CompanyDetailsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CompanyDetailsTable,
+          CompanyDetail,
+          $$CompanyDetailsTableFilterComposer,
+          $$CompanyDetailsTableOrderingComposer,
+          $$CompanyDetailsTableAnnotationComposer,
+          $$CompanyDetailsTableCreateCompanionBuilder,
+          $$CompanyDetailsTableUpdateCompanionBuilder,
+          (
+            CompanyDetail,
+            BaseReferences<_$AppDatabase, $CompanyDetailsTable, CompanyDetail>,
+          ),
+          CompanyDetail,
+          PrefetchHooks Function()
+        > {
+  $$CompanyDetailsTableTableManager(
+    _$AppDatabase db,
+    $CompanyDetailsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CompanyDetailsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CompanyDetailsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CompanyDetailsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> companyName = const Value.absent(),
+                Value<String> address = const Value.absent(),
+                Value<String> phone = const Value.absent(),
+                Value<String> email = const Value.absent(),
+                Value<String> website = const Value.absent(),
+                Value<String> gstNo = const Value.absent(),
+                Value<String?> logoPath = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => CompanyDetailsCompanion(
+                id: id,
+                companyName: companyName,
+                address: address,
+                phone: phone,
+                email: email,
+                website: website,
+                gstNo: gstNo,
+                logoPath: logoPath,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> companyName = const Value.absent(),
+                Value<String> address = const Value.absent(),
+                Value<String> phone = const Value.absent(),
+                Value<String> email = const Value.absent(),
+                Value<String> website = const Value.absent(),
+                Value<String> gstNo = const Value.absent(),
+                Value<String?> logoPath = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => CompanyDetailsCompanion.insert(
+                id: id,
+                companyName: companyName,
+                address: address,
+                phone: phone,
+                email: email,
+                website: website,
+                gstNo: gstNo,
+                logoPath: logoPath,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CompanyDetailsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CompanyDetailsTable,
+      CompanyDetail,
+      $$CompanyDetailsTableFilterComposer,
+      $$CompanyDetailsTableOrderingComposer,
+      $$CompanyDetailsTableAnnotationComposer,
+      $$CompanyDetailsTableCreateCompanionBuilder,
+      $$CompanyDetailsTableUpdateCompanionBuilder,
+      (
+        CompanyDetail,
+        BaseReferences<_$AppDatabase, $CompanyDetailsTable, CompanyDetail>,
+      ),
+      CompanyDetail,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6658,4 +7471,6 @@ class $AppDatabaseManager {
   $$LogsTableTableManager get logs => $$LogsTableTableManager(_db, _db.logs);
   $$HeaderFootersTableTableManager get headerFooters =>
       $$HeaderFootersTableTableManager(_db, _db.headerFooters);
+  $$CompanyDetailsTableTableManager get companyDetails =>
+      $$CompanyDetailsTableTableManager(_db, _db.companyDetails);
 }
