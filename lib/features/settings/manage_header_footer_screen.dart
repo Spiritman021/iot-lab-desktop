@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../core/audit/audit_service.dart';
 import '../../core/constants.dart';
 import '../../core/database/app_database.dart';
 
@@ -56,6 +57,13 @@ class _ManageHeaderFooterScreenState extends State<ManageHeaderFooterScreen> {
 
   Future<void> _selectItem(HeaderFooter item) async {
     await _db.selectHeaderFooter(item.id);
+    await AuditService.instance.log(
+      category: AuditService.catSettings,
+      action: 'template_selected',
+      entityType: 'header_footer',
+      entityId: item.id.toString(),
+      details: {'name': item.name},
+    );
     _loadItems();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -86,6 +94,13 @@ class _ManageHeaderFooterScreenState extends State<ManageHeaderFooterScreen> {
 
     if (confirmed == true) {
       await _db.deleteHeaderFooter(item.id);
+      await AuditService.instance.log(
+        category: AuditService.catSettings,
+        action: 'template_deleted',
+        entityType: 'header_footer',
+        entityId: item.id.toString(),
+        details: {'name': item.name},
+      );
       _loadItems();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -341,7 +356,7 @@ class _CreateHeaderFooterDialogState
 
     setState(() => _loading = true);
     try {
-      await _db.insertHeaderFooter(HeaderFootersCompanion.insert(
+      final id = await _db.insertHeaderFooter(HeaderFootersCompanion.insert(
         name: _nameController.text.trim(),
         hTextName: Value(_hTextNameController.text),
         hTextPosition: Value(_hTextPosController.text),
@@ -356,6 +371,13 @@ class _CreateHeaderFooterDialogState
         fTextSize: Value(_fTextSizeController.text),
         fTextFont: Value(_fTextFontController.text),
       ));
+      await AuditService.instance.log(
+        category: AuditService.catSettings,
+        action: 'template_created',
+        entityType: 'header_footer',
+        entityId: id.toString(),
+        details: {'name': _nameController.text.trim()},
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -592,6 +614,13 @@ class _EditHeaderFooterDialogState
           fTextName: Value(_fTextNameController.text),
           updatedAt: Value(DateTime.now()),
         ),
+      );
+      await AuditService.instance.log(
+        category: AuditService.catSettings,
+        action: 'template_updated',
+        entityType: 'header_footer',
+        entityId: widget.item.id.toString(),
+        details: {'name': _nameController.text.trim()},
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

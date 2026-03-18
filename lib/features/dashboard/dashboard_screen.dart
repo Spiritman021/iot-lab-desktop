@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../core/audit/audit_service.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/constants.dart';
 import '../../core/database/app_database.dart';
@@ -548,6 +549,17 @@ class _CalibrationTabState extends State<_CalibrationTab> {
           time: Value(row.time),
         ),
       );
+      await AuditService.instance.log(
+        category: AuditService.catCalibration,
+        action: 'row_saved',
+        entityType: 'calibration_row',
+        entityId: row.id.toString(),
+        details: {
+          'deviceId': widget.device.deviceId,
+          'value': row.val,
+          'valueAfterCal': row.valAfterCal,
+        },
+      );
     }
   }
 
@@ -576,6 +588,17 @@ class _CalibrationTabState extends State<_CalibrationTab> {
       '/$deviceId/CAL',
       '${valueIndex}0',
     );
+    AuditService.instance.log(
+      category: AuditService.catCalibration,
+      action: 'start',
+      entityType: 'device',
+      entityId: widget.device.id.toString(),
+      details: {
+        'deviceId': widget.device.deviceId,
+        'mode': _mode,
+        'bufferValue': _localRows[_calibrateIndex].val,
+      },
+    );
 
     widget.onDisableTabsChanged(true);
     setState(() {
@@ -592,6 +615,13 @@ class _CalibrationTabState extends State<_CalibrationTab> {
     widget.mqttService.publishToDevice('/$deviceId/RESET', '1');
     widget.mqttService.publishToDevice('/$deviceId/CAL', '${valueIndex}1');
     widget.mqttService.publishToDevice('/$deviceId/RESET', '0');
+    AuditService.instance.log(
+      category: AuditService.catCalibration,
+      action: 'reset',
+      entityType: 'device',
+      entityId: widget.device.id.toString(),
+      details: {'deviceId': widget.device.deviceId, 'mode': _mode},
+    );
 
     widget.onDisableTabsChanged(false);
     setState(() {
@@ -670,6 +700,16 @@ class _CalibrationTabState extends State<_CalibrationTab> {
             widget.mqttService.publishToDevice(
                 '/$deviceId/maxMV${i + 1}', updatedRows[i].val.toString());
           }
+          await AuditService.instance.log(
+            category: AuditService.catCalibration,
+            action: 'table_updated',
+            entityType: 'device',
+            entityId: widget.device.id.toString(),
+            details: {
+              'deviceId': widget.device.deviceId,
+              'rowCount': updatedRows.length,
+            },
+          );
           widget.onRefresh();
         },
       ),
@@ -713,6 +753,13 @@ class _CalibrationTabState extends State<_CalibrationTab> {
         await _db.updateCalibrationRow(
           _localRows[rowIndex].id,
           CalibrationRowsCompanion(val: Value(result)),
+        );
+        await AuditService.instance.log(
+          category: AuditService.catCalibration,
+          action: 'buffer_value_updated',
+          entityType: 'calibration_row',
+          entityId: _localRows[rowIndex].id.toString(),
+          details: {'deviceId': widget.device.deviceId, 'value': result},
         );
       }
       widget.onRefresh();
@@ -1346,6 +1393,17 @@ class _LogTabState extends State<_LogTab> {
           ? null
           : _arNoController.text.trim()),
     ));
+    await AuditService.instance.log(
+      category: AuditService.catDevice,
+      action: 'log_created',
+      entityType: 'device_log',
+      entityId: widget.device.id.toString(),
+      details: {
+        'deviceId': widget.device.deviceId,
+        'value': double.parse(val.toStringAsFixed(2)),
+        'temp': double.parse(temp.toStringAsFixed(2)),
+      },
+    );
 
     widget.onRefresh();
   }
@@ -1422,6 +1480,13 @@ class _LogTabState extends State<_LogTab> {
 
     if (confirmed == true) {
       await _db.deleteLogsForDevice(widget.device.id);
+      await AuditService.instance.log(
+        category: AuditService.catDevice,
+        action: 'logs_cleared',
+        entityType: 'device',
+        entityId: widget.device.id.toString(),
+        details: {'deviceId': widget.device.deviceId},
+      );
       widget.onRefresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2124,6 +2189,17 @@ class _AlarmTabState extends State<_AlarmTab> {
         minPh: Value(minPh),
         maxPh: Value(maxPh),
       ),
+    );
+    await AuditService.instance.log(
+      category: AuditService.catSettings,
+      action: 'alarm_saved',
+      entityType: 'device_config',
+      entityId: widget.config!.id.toString(),
+      details: {
+        'deviceId': widget.device.deviceId,
+        'minPh': minPh,
+        'maxPh': maxPh,
+      },
     );
 
     widget.onRefresh();

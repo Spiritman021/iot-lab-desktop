@@ -5587,6 +5587,656 @@ class PasswordHistoriesCompanion extends UpdateCompanion<PasswordHistory> {
   }
 }
 
+class $AuditLogsTable extends AuditLogs
+    with TableInfo<$AuditLogsTable, AuditLog> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AuditLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actionMeta = const VerificationMeta('action');
+  @override
+  late final GeneratedColumn<String> action = GeneratedColumn<String>(
+    'action',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<int> userId = GeneratedColumn<int>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _userNameMeta = const VerificationMeta(
+    'userName',
+  );
+  @override
+  late final GeneratedColumn<String> userName = GeneratedColumn<String>(
+    'user_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('system'),
+  );
+  static const VerificationMeta _entityTypeMeta = const VerificationMeta(
+    'entityType',
+  );
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+    'entity_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _entityIdMeta = const VerificationMeta(
+    'entityId',
+  );
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+    'entity_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('success'),
+  );
+  static const VerificationMeta _detailsMeta = const VerificationMeta(
+    'details',
+  );
+  @override
+  late final GeneratedColumn<String> details = GeneratedColumn<String>(
+    'details',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _integrityHashMeta = const VerificationMeta(
+    'integrityHash',
+  );
+  @override
+  late final GeneratedColumn<String> integrityHash = GeneratedColumn<String>(
+    'integrity_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    category,
+    action,
+    userId,
+    userName,
+    entityType,
+    entityId,
+    status,
+    details,
+    integrityHash,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'audit_logs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AuditLog> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('action')) {
+      context.handle(
+        _actionMeta,
+        action.isAcceptableOrUnknown(data['action']!, _actionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_actionMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    }
+    if (data.containsKey('user_name')) {
+      context.handle(
+        _userNameMeta,
+        userName.isAcceptableOrUnknown(data['user_name']!, _userNameMeta),
+      );
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+        _entityTypeMeta,
+        entityType.isAcceptableOrUnknown(data['entity_type']!, _entityTypeMeta),
+      );
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(
+        _entityIdMeta,
+        entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('details')) {
+      context.handle(
+        _detailsMeta,
+        details.isAcceptableOrUnknown(data['details']!, _detailsMeta),
+      );
+    }
+    if (data.containsKey('integrity_hash')) {
+      context.handle(
+        _integrityHashMeta,
+        integrityHash.isAcceptableOrUnknown(
+          data['integrity_hash']!,
+          _integrityHashMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AuditLog map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AuditLog(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      action: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}action'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}user_id'],
+      ),
+      userName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_name'],
+      )!,
+      entityType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_type'],
+      )!,
+      entityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_id'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      details: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}details'],
+      )!,
+      integrityHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}integrity_hash'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AuditLogsTable createAlias(String alias) {
+    return $AuditLogsTable(attachedDatabase, alias);
+  }
+}
+
+class AuditLog extends DataClass implements Insertable<AuditLog> {
+  final int id;
+
+  /// Category: auth, user, device, calibration, report, file, settings
+  final String category;
+
+  /// Specific action: login, logout, create, edit, delete, print, export, etc.
+  final String action;
+
+  /// User who performed the action
+  final int? userId;
+  final String userName;
+
+  /// What entity was affected (e.g. "user", "device", "report")
+  final String entityType;
+  final String entityId;
+
+  /// Outcome
+  final String status;
+
+  /// Additional details (JSON string)
+  final String details;
+
+  /// SHA-256 hash of previous log entry + this entry's data = tamper-proof chain
+  final String integrityHash;
+
+  /// Timestamp
+  final DateTime createdAt;
+  const AuditLog({
+    required this.id,
+    required this.category,
+    required this.action,
+    this.userId,
+    required this.userName,
+    required this.entityType,
+    required this.entityId,
+    required this.status,
+    required this.details,
+    required this.integrityHash,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['category'] = Variable<String>(category);
+    map['action'] = Variable<String>(action);
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<int>(userId);
+    }
+    map['user_name'] = Variable<String>(userName);
+    map['entity_type'] = Variable<String>(entityType);
+    map['entity_id'] = Variable<String>(entityId);
+    map['status'] = Variable<String>(status);
+    map['details'] = Variable<String>(details);
+    map['integrity_hash'] = Variable<String>(integrityHash);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  AuditLogsCompanion toCompanion(bool nullToAbsent) {
+    return AuditLogsCompanion(
+      id: Value(id),
+      category: Value(category),
+      action: Value(action),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
+      userName: Value(userName),
+      entityType: Value(entityType),
+      entityId: Value(entityId),
+      status: Value(status),
+      details: Value(details),
+      integrityHash: Value(integrityHash),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory AuditLog.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AuditLog(
+      id: serializer.fromJson<int>(json['id']),
+      category: serializer.fromJson<String>(json['category']),
+      action: serializer.fromJson<String>(json['action']),
+      userId: serializer.fromJson<int?>(json['userId']),
+      userName: serializer.fromJson<String>(json['userName']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      entityId: serializer.fromJson<String>(json['entityId']),
+      status: serializer.fromJson<String>(json['status']),
+      details: serializer.fromJson<String>(json['details']),
+      integrityHash: serializer.fromJson<String>(json['integrityHash']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'category': serializer.toJson<String>(category),
+      'action': serializer.toJson<String>(action),
+      'userId': serializer.toJson<int?>(userId),
+      'userName': serializer.toJson<String>(userName),
+      'entityType': serializer.toJson<String>(entityType),
+      'entityId': serializer.toJson<String>(entityId),
+      'status': serializer.toJson<String>(status),
+      'details': serializer.toJson<String>(details),
+      'integrityHash': serializer.toJson<String>(integrityHash),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  AuditLog copyWith({
+    int? id,
+    String? category,
+    String? action,
+    Value<int?> userId = const Value.absent(),
+    String? userName,
+    String? entityType,
+    String? entityId,
+    String? status,
+    String? details,
+    String? integrityHash,
+    DateTime? createdAt,
+  }) => AuditLog(
+    id: id ?? this.id,
+    category: category ?? this.category,
+    action: action ?? this.action,
+    userId: userId.present ? userId.value : this.userId,
+    userName: userName ?? this.userName,
+    entityType: entityType ?? this.entityType,
+    entityId: entityId ?? this.entityId,
+    status: status ?? this.status,
+    details: details ?? this.details,
+    integrityHash: integrityHash ?? this.integrityHash,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  AuditLog copyWithCompanion(AuditLogsCompanion data) {
+    return AuditLog(
+      id: data.id.present ? data.id.value : this.id,
+      category: data.category.present ? data.category.value : this.category,
+      action: data.action.present ? data.action.value : this.action,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      userName: data.userName.present ? data.userName.value : this.userName,
+      entityType: data.entityType.present
+          ? data.entityType.value
+          : this.entityType,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      status: data.status.present ? data.status.value : this.status,
+      details: data.details.present ? data.details.value : this.details,
+      integrityHash: data.integrityHash.present
+          ? data.integrityHash.value
+          : this.integrityHash,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AuditLog(')
+          ..write('id: $id, ')
+          ..write('category: $category, ')
+          ..write('action: $action, ')
+          ..write('userId: $userId, ')
+          ..write('userName: $userName, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('status: $status, ')
+          ..write('details: $details, ')
+          ..write('integrityHash: $integrityHash, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    category,
+    action,
+    userId,
+    userName,
+    entityType,
+    entityId,
+    status,
+    details,
+    integrityHash,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AuditLog &&
+          other.id == this.id &&
+          other.category == this.category &&
+          other.action == this.action &&
+          other.userId == this.userId &&
+          other.userName == this.userName &&
+          other.entityType == this.entityType &&
+          other.entityId == this.entityId &&
+          other.status == this.status &&
+          other.details == this.details &&
+          other.integrityHash == this.integrityHash &&
+          other.createdAt == this.createdAt);
+}
+
+class AuditLogsCompanion extends UpdateCompanion<AuditLog> {
+  final Value<int> id;
+  final Value<String> category;
+  final Value<String> action;
+  final Value<int?> userId;
+  final Value<String> userName;
+  final Value<String> entityType;
+  final Value<String> entityId;
+  final Value<String> status;
+  final Value<String> details;
+  final Value<String> integrityHash;
+  final Value<DateTime> createdAt;
+  const AuditLogsCompanion({
+    this.id = const Value.absent(),
+    this.category = const Value.absent(),
+    this.action = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.userName = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.details = const Value.absent(),
+    this.integrityHash = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  AuditLogsCompanion.insert({
+    this.id = const Value.absent(),
+    required String category,
+    required String action,
+    this.userId = const Value.absent(),
+    this.userName = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.details = const Value.absent(),
+    this.integrityHash = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : category = Value(category),
+       action = Value(action);
+  static Insertable<AuditLog> custom({
+    Expression<int>? id,
+    Expression<String>? category,
+    Expression<String>? action,
+    Expression<int>? userId,
+    Expression<String>? userName,
+    Expression<String>? entityType,
+    Expression<String>? entityId,
+    Expression<String>? status,
+    Expression<String>? details,
+    Expression<String>? integrityHash,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (category != null) 'category': category,
+      if (action != null) 'action': action,
+      if (userId != null) 'user_id': userId,
+      if (userName != null) 'user_name': userName,
+      if (entityType != null) 'entity_type': entityType,
+      if (entityId != null) 'entity_id': entityId,
+      if (status != null) 'status': status,
+      if (details != null) 'details': details,
+      if (integrityHash != null) 'integrity_hash': integrityHash,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  AuditLogsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? category,
+    Value<String>? action,
+    Value<int?>? userId,
+    Value<String>? userName,
+    Value<String>? entityType,
+    Value<String>? entityId,
+    Value<String>? status,
+    Value<String>? details,
+    Value<String>? integrityHash,
+    Value<DateTime>? createdAt,
+  }) {
+    return AuditLogsCompanion(
+      id: id ?? this.id,
+      category: category ?? this.category,
+      action: action ?? this.action,
+      userId: userId ?? this.userId,
+      userName: userName ?? this.userName,
+      entityType: entityType ?? this.entityType,
+      entityId: entityId ?? this.entityId,
+      status: status ?? this.status,
+      details: details ?? this.details,
+      integrityHash: integrityHash ?? this.integrityHash,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (action.present) {
+      map['action'] = Variable<String>(action.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<int>(userId.value);
+    }
+    if (userName.present) {
+      map['user_name'] = Variable<String>(userName.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (details.present) {
+      map['details'] = Variable<String>(details.value);
+    }
+    if (integrityHash.present) {
+      map['integrity_hash'] = Variable<String>(integrityHash.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AuditLogsCompanion(')
+          ..write('id: $id, ')
+          ..write('category: $category, ')
+          ..write('action: $action, ')
+          ..write('userId: $userId, ')
+          ..write('userName: $userName, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('status: $status, ')
+          ..write('details: $details, ')
+          ..write('integrityHash: $integrityHash, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5602,6 +6252,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ReportFilesTable reportFiles = $ReportFilesTable(this);
   late final $PasswordHistoriesTable passwordHistories =
       $PasswordHistoriesTable(this);
+  late final $AuditLogsTable auditLogs = $AuditLogsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5616,6 +6267,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     companyDetails,
     reportFiles,
     passwordHistories,
+    auditLogs,
   ];
 }
 
@@ -8989,6 +9641,312 @@ typedef $$PasswordHistoriesTableProcessedTableManager =
       PasswordHistory,
       PrefetchHooks Function()
     >;
+typedef $$AuditLogsTableCreateCompanionBuilder =
+    AuditLogsCompanion Function({
+      Value<int> id,
+      required String category,
+      required String action,
+      Value<int?> userId,
+      Value<String> userName,
+      Value<String> entityType,
+      Value<String> entityId,
+      Value<String> status,
+      Value<String> details,
+      Value<String> integrityHash,
+      Value<DateTime> createdAt,
+    });
+typedef $$AuditLogsTableUpdateCompanionBuilder =
+    AuditLogsCompanion Function({
+      Value<int> id,
+      Value<String> category,
+      Value<String> action,
+      Value<int?> userId,
+      Value<String> userName,
+      Value<String> entityType,
+      Value<String> entityId,
+      Value<String> status,
+      Value<String> details,
+      Value<String> integrityHash,
+      Value<DateTime> createdAt,
+    });
+
+class $$AuditLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $AuditLogsTable> {
+  $$AuditLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get action => $composableBuilder(
+    column: $table.action,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userName => $composableBuilder(
+    column: $table.userName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get details => $composableBuilder(
+    column: $table.details,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get integrityHash => $composableBuilder(
+    column: $table.integrityHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AuditLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AuditLogsTable> {
+  $$AuditLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get action => $composableBuilder(
+    column: $table.action,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userName => $composableBuilder(
+    column: $table.userName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get details => $composableBuilder(
+    column: $table.details,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get integrityHash => $composableBuilder(
+    column: $table.integrityHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AuditLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AuditLogsTable> {
+  $$AuditLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get action =>
+      $composableBuilder(column: $table.action, builder: (column) => column);
+
+  GeneratedColumn<int> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get userName =>
+      $composableBuilder(column: $table.userName, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get details =>
+      $composableBuilder(column: $table.details, builder: (column) => column);
+
+  GeneratedColumn<String> get integrityHash => $composableBuilder(
+    column: $table.integrityHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$AuditLogsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AuditLogsTable,
+          AuditLog,
+          $$AuditLogsTableFilterComposer,
+          $$AuditLogsTableOrderingComposer,
+          $$AuditLogsTableAnnotationComposer,
+          $$AuditLogsTableCreateCompanionBuilder,
+          $$AuditLogsTableUpdateCompanionBuilder,
+          (AuditLog, BaseReferences<_$AppDatabase, $AuditLogsTable, AuditLog>),
+          AuditLog,
+          PrefetchHooks Function()
+        > {
+  $$AuditLogsTableTableManager(_$AppDatabase db, $AuditLogsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AuditLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AuditLogsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AuditLogsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<String> action = const Value.absent(),
+                Value<int?> userId = const Value.absent(),
+                Value<String> userName = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<String> entityId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> details = const Value.absent(),
+                Value<String> integrityHash = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => AuditLogsCompanion(
+                id: id,
+                category: category,
+                action: action,
+                userId: userId,
+                userName: userName,
+                entityType: entityType,
+                entityId: entityId,
+                status: status,
+                details: details,
+                integrityHash: integrityHash,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String category,
+                required String action,
+                Value<int?> userId = const Value.absent(),
+                Value<String> userName = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<String> entityId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> details = const Value.absent(),
+                Value<String> integrityHash = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => AuditLogsCompanion.insert(
+                id: id,
+                category: category,
+                action: action,
+                userId: userId,
+                userName: userName,
+                entityType: entityType,
+                entityId: entityId,
+                status: status,
+                details: details,
+                integrityHash: integrityHash,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AuditLogsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AuditLogsTable,
+      AuditLog,
+      $$AuditLogsTableFilterComposer,
+      $$AuditLogsTableOrderingComposer,
+      $$AuditLogsTableAnnotationComposer,
+      $$AuditLogsTableCreateCompanionBuilder,
+      $$AuditLogsTableUpdateCompanionBuilder,
+      (AuditLog, BaseReferences<_$AppDatabase, $AuditLogsTable, AuditLog>),
+      AuditLog,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9010,4 +9968,6 @@ class $AppDatabaseManager {
       $$ReportFilesTableTableManager(_db, _db.reportFiles);
   $$PasswordHistoriesTableTableManager get passwordHistories =>
       $$PasswordHistoriesTableTableManager(_db, _db.passwordHistories);
+  $$AuditLogsTableTableManager get auditLogs =>
+      $$AuditLogsTableTableManager(_db, _db.auditLogs);
 }

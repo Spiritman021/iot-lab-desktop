@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../core/audit/audit_service.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/auth/password_validator.dart';
 import '../../core/constants.dart';
@@ -100,6 +101,13 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
 
     if (confirmed == true) {
       await _db.deleteUser(user.id);
+      await AuditService.instance.log(
+        category: AuditService.catUser,
+        action: 'delete',
+        entityType: 'user',
+        entityId: user.id.toString(),
+        details: {'email': user.email, 'name': user.name},
+      );
       _loadUsers();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -154,6 +162,13 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
           isActive: Value(newStatus),
           updatedAt: Value(DateTime.now()),
         ),
+      );
+      await AuditService.instance.log(
+        category: AuditService.catUser,
+        action: newStatus ? 'activate' : 'deactivate',
+        entityType: 'user',
+        entityId: user.id.toString(),
+        details: {'email': user.email, 'name': user.name},
       );
       _loadUsers();
       if (mounted) {
@@ -604,6 +619,17 @@ class _EditUserDialogState extends State<_EditUserDialog> {
           passwordExpiryDays: Value(_selectedExpiryDays),
           updatedAt: Value(DateTime.now()),
         ),
+      );
+      await AuditService.instance.log(
+        category: AuditService.catUser,
+        action: 'update',
+        entityType: 'user',
+        entityId: widget.user.id.toString(),
+        details: {
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'role': _selectedRole,
+        },
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

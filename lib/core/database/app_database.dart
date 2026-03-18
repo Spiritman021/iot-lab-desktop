@@ -19,6 +19,7 @@ part 'app_database.g.dart';
   CompanyDetails,
   ReportFiles,
   PasswordHistories,
+  AuditLogs,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase._() : super(_openConnection());
@@ -31,7 +32,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -91,6 +92,23 @@ class AppDatabase extends _$AppDatabase {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
                 password_hash TEXT NOT NULL,
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+              )
+            ''');
+          }
+          if (from < 8) {
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                category TEXT NOT NULL,
+                action TEXT NOT NULL,
+                user_id INTEGER,
+                user_name TEXT NOT NULL DEFAULT 'system',
+                entity_type TEXT NOT NULL DEFAULT '',
+                entity_id TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'success',
+                details TEXT NOT NULL DEFAULT '',
+                integrity_hash TEXT NOT NULL DEFAULT '',
                 created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
               )
             ''');
@@ -366,6 +384,57 @@ class AppDatabase extends _$AppDatabase {
       ),
     );
     await addPasswordHistory(userId, newHash);
+  }
+
+  // ── Audit Logs ──
+
+  Future<int> insertAuditLog(AuditLogsCompanion log) {
+    return into(auditLogs).insert(log);
+  }
+
+  Future<List<AuditLog>> getAuditLogs({
+    String? category,
+    String? action,
+    int? userId,
+    String? status,
+    String? search,
+    int limit = 500,
+  }) async {
+    final q = select(auditLogs);
+    if (category != null && category.isNotEmpty && category != 'all') {
+      q.where((t) => t.category.equals(category));
+    }
+    if (action != null && action.isNotEmpty && action != 'all') {
+      q.where((t) => t.action.equals(action));
+    }
+    if (userId != null) {
+      q.where((t) => t.userId.equals(userId));
+    }
+    if (status != null && status.isNotEmpty && status != 'all') {
+      q.where((t) => t.status.equals(status));
+    }
+    q.orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
+    q.limit(limit);
+    final rows = await q.get();
+    if (search == null || search.trim().isEmpty) return rows;
+
+    final needle = search.toLowerCase();
+    return rows.where((row) {
+      return row.category.toLowerCase().contains(needle) ||
+          row.action.toLowerCase().contains(needle) ||
+          row.userName.toLowerCase().contains(needle) ||
+          row.entityType.toLowerCase().contains(needle) ||
+          row.entityId.toLowerCase().contains(needle) ||
+          row.status.toLowerCase().contains(needle) ||
+          row.details.toLowerCase().contains(needle);
+    }).toList();
+  }
+
+  Future<AuditLog?> getLastAuditLog() {
+    return (select(auditLogs)
+          ..orderBy([(t) => OrderingTerm.desc(t.id)])
+          ..limit(1))
+        .getSingleOrNull();
   }
 }
 

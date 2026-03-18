@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:printing/printing.dart';
 
+import '../../core/audit/audit_service.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/database/app_database.dart';
 
@@ -127,6 +128,13 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
 
     if (file.format == 'pdf') {
       final bytes = await f.readAsBytes();
+      await AuditService.instance.log(
+        category: AuditService.catFile,
+        action: 'open',
+        entityType: 'report',
+        entityId: file.id.toString(),
+        details: {'fileName': file.fileName},
+      );
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -159,6 +167,13 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
     }
 
     final bytes = await f.readAsBytes();
+    await AuditService.instance.log(
+      category: AuditService.catFile,
+      action: 'print',
+      entityType: 'report',
+      entityId: file.id.toString(),
+      details: {'fileName': file.fileName},
+    );
     await Printing.layoutPdf(onLayout: (_) => bytes);
   }
 
@@ -166,6 +181,13 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
     final f = File(file.filePath);
     if (!f.existsSync()) return;
     final bytes = await f.readAsBytes();
+    await AuditService.instance.log(
+      category: AuditService.catFile,
+      action: 'export',
+      entityType: 'report',
+      entityId: file.id.toString(),
+      details: {'fileName': file.fileName},
+    );
     await Printing.sharePdf(bytes: bytes, filename: file.fileName);
   }
 
@@ -192,6 +214,13 @@ class _FileManagerScreenState extends State<FileManagerScreen> {
       if (f.existsSync()) f.deleteSync();
       // Delete from DB
       await _db.deleteReportFile(file.id);
+      await AuditService.instance.log(
+        category: AuditService.catFile,
+        action: 'delete',
+        entityType: 'report',
+        entityId: file.id.toString(),
+        details: {'fileName': file.fileName},
+      );
       _loadFiles();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -2,8 +2,10 @@ import 'package:bcrypt/bcrypt.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../core/audit/audit_service.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/mqtt/mqtt_service.dart';
+import 'audit_logs_screen.dart';
 import 'company_details_screen.dart';
 import 'manage_devices_screen.dart';
 import 'manage_header_footer_screen.dart';
@@ -73,8 +75,22 @@ class _PasswordGateState extends State<_PasswordGate> {
 
       final isCorrect = BCrypt.checkpw(password, user.passwordHash);
       if (isCorrect) {
+        await AuditService.instance.log(
+          category: AuditService.catAuth,
+          action: 'reauth_admin',
+          entityType: 'user',
+          entityId: user.id.toString(),
+        );
         widget.onAuthenticated();
       } else {
+        await AuditService.instance.log(
+          category: AuditService.catAuth,
+          action: 'reauth_admin',
+          entityType: 'user',
+          entityId: user.id.toString(),
+          status: 'failed',
+          details: {'reason': 'Incorrect password'},
+        );
         setState(() {
           _error = 'Incorrect password';
           _loading = false;
@@ -198,7 +214,7 @@ class _AdminTabbedBodyState extends State<_AdminTabbedBody>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -248,6 +264,10 @@ class _AdminTabbedBodyState extends State<_AdminTabbedBody>
                     text: 'Users',
                   ),
                   Tab(
+                    icon: Icon(LucideIcons.clipboardList, size: 16),
+                    text: 'Audit',
+                  ),
+                  Tab(
                     icon: Icon(LucideIcons.fileText, size: 16),
                     text: 'Setup',
                   ),
@@ -264,13 +284,14 @@ class _AdminTabbedBodyState extends State<_AdminTabbedBody>
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: const [
-              _MqttSettingsTab(),
-              ManageDevicesScreen(),
-              ManageUsersScreen(),
-              ManageHeaderFooterScreen(),
-              CompanyDetailsScreen(),
-            ],
+                children: const [
+                  _MqttSettingsTab(),
+                  ManageDevicesScreen(),
+                  ManageUsersScreen(),
+                  AuditLogsScreen(),
+                  ManageHeaderFooterScreen(),
+                  CompanyDetailsScreen(),
+                ],
           ),
         ),
       ],

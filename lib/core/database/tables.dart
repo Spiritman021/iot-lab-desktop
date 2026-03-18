@@ -152,3 +152,35 @@ class PasswordHistories extends Table {
   DateTimeColumn get createdAt =>
       dateTime().withDefault(currentDateAndTime)();
 }
+
+/// Immutable audit log used for traceability and inspection readiness.
+class AuditLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// Category: auth, user, device, calibration, report, file, settings
+  TextColumn get category => text()();
+
+  /// Specific action: login, logout, create, edit, delete, print, export, etc.
+  TextColumn get action => text()();
+
+  /// User who performed the action
+  IntColumn get userId => integer().nullable()();
+  TextColumn get userName => text().withDefault(const Constant('system'))();
+
+  /// What entity was affected
+  TextColumn get entityType => text().withDefault(const Constant(''))();
+  TextColumn get entityId => text().withDefault(const Constant(''))();
+
+  /// Outcome
+  TextColumn get status => text().withDefault(const Constant('success'))();
+
+  /// Additional details serialized as JSON
+  TextColumn get details => text().withDefault(const Constant(''))();
+
+  /// Hash chain over previous record + current payload for tamper evidence
+  TextColumn get integrityHash => text().withDefault(const Constant(''))();
+
+  /// Timestamp
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
+}

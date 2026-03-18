@@ -9,6 +9,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../audit/audit_service.dart';
 import '../database/app_database.dart';
 import '../auth/auth_service.dart';
 
@@ -484,6 +485,17 @@ class ReportService {
       generatedBy: Value(user?.name ?? 'Unknown'),
       format: const Value('pdf'),
     ));
+    await AuditService.instance.log(
+      category: AuditService.catReport,
+      action: 'generate',
+      entityType: 'report',
+      entityId: fullName,
+      details: {
+        'reportType': reportType,
+        'deviceId': deviceId,
+        'deviceType': deviceType,
+      },
+    );
 
     return (filePath, fullName);
   }

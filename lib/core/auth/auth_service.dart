@@ -3,6 +3,8 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../audit/audit_context.dart';
+import '../audit/audit_service.dart';
 import '../database/app_database.dart';
 import 'password_validator.dart';
 
@@ -87,6 +89,12 @@ class AuthService extends ChangeNotifier {
       final userId = prefs.getInt('userId');
       if (userId != null) {
         _currentUser = await _db.getUserById(userId);
+        if (_currentUser != null) {
+          AuditContext.setActor(
+            userId: _currentUser!.id,
+            userName: _currentUser!.name,
+          );
+        }
       }
     } catch (e) {
       debugPrint('Auth init error: $e');
@@ -128,6 +136,13 @@ class AuthService extends ChangeNotifier {
 
     // Save initial password to history
     await _db.addPasswordHistory(userId, hash);
+    await AuditService.instance.log(
+      category: AuditService.catUser,
+      action: 'create',
+      entityType: 'user',
+      entityId: userId.toString(),
+      details: {'email': email, 'role': role, 'name': name},
+    );
 
     return 'User registered successfully';
   }
@@ -139,11 +154,25 @@ class AuthService extends ChangeNotifier {
   }) async {
     final user = await _db.getUserByEmail(email);
     if (user == null) {
+      await AuditService.instance.log(
+        category: AuditService.catAuth,
+        action: 'login',
+        status: 'failed',
+        details: {'email': email, 'reason': 'Unknown account'},
+      );
       throw Exception('Account not registered or deleted');
     }
 
     final isCorrect = BCrypt.checkpw(password, user.passwordHash);
     if (!isCorrect) {
+      await AuditService.instance.log(
+        category: AuditService.catAuth,
+        action: 'login',
+        entityType: 'user',
+        entityId: user.id.toString(),
+        status: 'failed',
+        details: {'email': email, 'reason': 'Incorrect password'},
+      );
       throw Exception('Invalid email or password');
     }
 
@@ -153,12 +182,20 @@ class AuthService extends ChangeNotifier {
     }
 
     _currentUser = user;
+    AuditContext.setActor(userId: user.id, userName: user.name);
 
     // Persist session
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('userId', user.id);
 
     notifyListeners();
+    await AuditService.instance.log(
+      category: AuditService.catAuth,
+      action: 'login',
+      entityType: 'user',
+      entityId: user.id.toString(),
+      details: {'email': user.email},
+    );
 
     // Check password expiry (after successful login)
     if (isPasswordExpired(user)) {
@@ -220,12 +257,34 @@ class AuthService extends ChangeNotifier {
 
     // Refresh current user
     _currentUser = await _db.getUserById(userId);
+    if (_currentUser != null) {
+      AuditContext.setActor(
+        userId: _currentUser!.id,
+        userName: _currentUser!.name,
+      );
+    }
     notifyListeners();
+    await AuditService.instance.log(
+      category: AuditService.catAuth,
+      action: 'password_changed',
+      entityType: 'user',
+      entityId: userId.toString(),
+    );
   }
 
   /// Logout
   Future<void> logout() async {
+    final user = _currentUser;
+    if (user != null) {
+      await AuditService.instance.log(
+        category: AuditService.catAuth,
+        action: 'logout',
+        entityType: 'user',
+        entityId: user.id.toString(),
+      );
+    }
     _currentUser = null;
+    AuditContext.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('userId');
     notifyListeners();

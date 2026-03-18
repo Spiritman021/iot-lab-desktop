@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../core/audit/audit_service.dart';
 import '../../core/constants.dart';
 import '../../core/database/app_database.dart';
 import '../../core/mqtt/mqtt_service.dart';
@@ -248,6 +249,13 @@ class _ManageDevicesScreenState extends State<ManageDevicesScreen> {
         await _db.deleteLogsForDevice(device.id);
         // Delete device (cascades to config via foreign key)
         await _db.deleteDevice(device.id);
+        await AuditService.instance.log(
+          category: AuditService.catDevice,
+          action: 'delete',
+          entityType: 'device',
+          entityId: device.id.toString(),
+          details: {'deviceId': device.deviceId, 'type': device.type},
+        );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -333,6 +341,17 @@ class _EditDeviceDialogState extends State<_EditDeviceDialog> {
           }
         }
       }
+      await AuditService.instance.log(
+        category: AuditService.catDevice,
+        action: 'update',
+        entityType: 'device',
+        entityId: widget.device.id.toString(),
+        details: {
+          'deviceId': widget.device.deviceId,
+          'oldMode': widget.device.mode,
+          'newMode': _selectedMode,
+        },
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -558,6 +577,17 @@ class _CreateDeviceDialogState extends State<_CreateDeviceDialog> {
           val: val,
         ));
       }
+      await AuditService.instance.log(
+        category: AuditService.catDevice,
+        action: 'create',
+        entityType: 'device',
+        entityId: devicePk.toString(),
+        details: {
+          'deviceId': deviceId,
+          'type': _selectedType,
+          'mode': _selectedMode,
+        },
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../core/audit/audit_service.dart';
 import '../../core/database/app_database.dart';
 
 /// Company Details configuration — singleton row in CompanyDetails table.
@@ -60,6 +61,16 @@ class _CompanyDetailsScreenState extends State<CompanyDetailsScreen> {
         gstNo: Value(_gstController.text.trim()),
         updatedAt: Value(DateTime.now()),
       ));
+      await AuditService.instance.log(
+        category: AuditService.catSettings,
+        action: 'company_details_saved',
+        entityType: 'company_details',
+        entityId: 'singleton',
+        details: {
+          'companyName': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+        },
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
