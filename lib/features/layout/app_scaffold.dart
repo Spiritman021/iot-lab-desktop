@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/mqtt/mqtt_service.dart';
-import '../auth/change_password_dialog.dart';
 
 /// App scaffold with sidebar, session timer countdown, and auto-logout.
 class AppScaffold extends StatefulWidget {
@@ -294,13 +293,6 @@ class AppScaffoldState extends State<AppScaffold> {
                             size: 18),
                         onPressed: _toggleTheme,
                         tooltip: 'Toggle theme',
-                      ),
-                      const SizedBox(height: 4),
-                      // Change Password
-                      IconButton(
-                        icon: const Icon(LucideIcons.keyRound, size: 18),
-                        onPressed: () => ChangePasswordDialog.show(context),
-                        tooltip: 'Change Password',
                       ),
                       const SizedBox(height: 4),
                       // Logout

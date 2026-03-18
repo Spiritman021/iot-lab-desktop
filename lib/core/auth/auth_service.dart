@@ -272,6 +272,51 @@ class AuthService extends ChangeNotifier {
     );
   }
 
+  /// Admin-only password reset for any managed user.
+  Future<void> adminResetPassword({
+    required int targetUserId,
+    required String newPassword,
+  }) async {
+    final admin = _currentUser;
+    if (admin == null || !UserRoles.canAccessAdmin(admin.role)) {
+      throw Exception('Only admins can reset passwords');
+    }
+
+    if (targetUserId == admin.id) {
+      throw Exception('Use another admin account to reset your own password');
+    }
+
+    final validationError = PasswordValidator.validate(newPassword);
+    if (validationError != null) {
+      throw Exception(validationError);
+    }
+
+    final user = await _db.getUserById(targetUserId);
+    if (user == null) throw Exception('User not found');
+
+    final history = await _db.getPasswordHistory(targetUserId);
+    final last5 = history.take(5);
+    for (final h in last5) {
+      if (BCrypt.checkpw(newPassword, h.passwordHash)) {
+        throw Exception(
+            'Cannot reuse any of the last 5 passwords for this user.');
+      }
+    }
+
+    final newHash = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+    await _db.changeUserPassword(targetUserId, newHash);
+    await AuditService.instance.log(
+      category: AuditService.catUser,
+      action: 'password_reset',
+      entityType: 'user',
+      entityId: targetUserId.toString(),
+      details: {
+        'resetBy': admin.email,
+        'targetEmail': user.email,
+      },
+    );
+  }
+
   /// Logout
   Future<void> logout() async {
     final user = _currentUser;

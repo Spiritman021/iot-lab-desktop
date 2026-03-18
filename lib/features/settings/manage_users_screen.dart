@@ -190,6 +190,14 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
+  void _resetUserPassword(User user) {
+    showDialog(
+      context: context,
+      builder: (ctx) =>
+          _ResetPasswordDialog(user: user, onUpdated: _loadUsers),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -276,6 +284,14 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                                                   .primary),
                                           tooltip: 'Edit',
                                           onPressed: () => _editUser(user),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(LucideIcons.keyRound,
+                                              size: 16,
+                                              color: Colors.blue.shade600),
+                                          tooltip: 'Reset Password',
+                                          onPressed: () =>
+                                              _resetUserPassword(user),
                                         ),
                                         IconButton(
                                           icon: Icon(
@@ -732,6 +748,175 @@ class _EditUserDialogState extends State<_EditUserDialog> {
                       strokeWidth: 2, color: Colors.white))
               : const Icon(LucideIcons.save, size: 16),
           label: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ResetPasswordDialog extends StatefulWidget {
+  final User user;
+  final VoidCallback onUpdated;
+
+  const _ResetPasswordDialog({
+    required this.user,
+    required this.onUpdated,
+  });
+
+  @override
+  State<_ResetPasswordDialog> createState() => _ResetPasswordDialogState();
+}
+
+class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _loading = false;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+
+  @override
+  void dispose() {
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleReset() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _loading = true);
+    try {
+      await AuthService.instance.adminResetPassword(
+        targetUserId: widget.user.id,
+        newPassword: _newPasswordController.text,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Password reset for ${widget.user.name}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        widget.onUpdated();
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final requirements =
+        PasswordValidator.getRequirements(_newPasswordController.text);
+
+    return AlertDialog(
+      title: Text('Reset Password: ${widget.user.name}'),
+      content: SizedBox(
+        width: 420,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Only admins can reset passwords. The user will need this new password for the next login.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _newPasswordController,
+                obscureText: _obscureNew,
+                decoration: InputDecoration(
+                  labelText: 'New Password',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                        _obscureNew ? LucideIcons.eyeOff : LucideIcons.eye),
+                    onPressed: () =>
+                        setState(() => _obscureNew = !_obscureNew),
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  return PasswordValidator.validate(v);
+                },
+              ),
+              const SizedBox(height: 8),
+              ...requirements.map((req) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1),
+                    child: Row(
+                      children: [
+                        Icon(
+                          req.met
+                              ? LucideIcons.checkCircle2
+                              : LucideIcons.circle,
+                          size: 12,
+                          color: req.met ? Colors.green : Colors.grey,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          req.label,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: req.met ? Colors.green : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirm,
+                decoration: InputDecoration(
+                  labelText: 'Confirm Password',
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureConfirm
+                        ? LucideIcons.eyeOff
+                        : LucideIcons.eye),
+                    onPressed: () =>
+                        setState(() => _obscureConfirm = !_obscureConfirm),
+                  ),
+                ),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  if (v != _newPasswordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          onPressed: _loading ? null : _handleReset,
+          icon: _loading
+              ? const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
+                )
+              : const Icon(LucideIcons.keyRound, size: 16),
+          label: const Text('Reset Password'),
         ),
       ],
     );
