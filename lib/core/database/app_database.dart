@@ -83,7 +83,12 @@ class AppDatabase extends _$AppDatabase {
           if (from < 7) {
             // Add password policy columns to users
             await customStatement(
-                "ALTER TABLE users ADD COLUMN password_changed_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))");
+                'ALTER TABLE users ADD COLUMN password_changed_at INTEGER');
+            await customStatement('''
+              UPDATE users
+              SET password_changed_at = COALESCE(created_at, strftime('%s','now'))
+              WHERE password_changed_at IS NULL
+            ''');
             await customStatement(
                 "ALTER TABLE users ADD COLUMN password_expiry_days INTEGER NOT NULL DEFAULT 90");
             // Create password history table
