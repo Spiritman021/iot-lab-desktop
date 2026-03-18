@@ -8,11 +8,10 @@ import '../../core/mqtt/mqtt_service.dart';
 import 'audit_logs_screen.dart';
 import 'company_details_screen.dart';
 import 'manage_devices_screen.dart';
-import 'manage_header_footer_screen.dart';
 import 'manage_users_screen.dart';
 
 /// Admin Settings screen — requires password re-authentication.
-/// After auth, shows tabs: MQTT | Devices | Users | Setup
+/// After auth, shows tabs: MQTT | Devices | Users | Audit | Company
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
 
@@ -198,7 +197,7 @@ class _PasswordGateState extends State<_PasswordGate> {
   }
 }
 
-// ─── Admin Tabbed Body (MQTT | Devices | Users | Setup) ─────────────────────
+// ─── Admin Tabbed Body (MQTT | Devices | Users | Audit | Company) ───────────
 
 class _AdminTabbedBody extends StatefulWidget {
   const _AdminTabbedBody();
@@ -214,7 +213,7 @@ class _AdminTabbedBodyState extends State<_AdminTabbedBody>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -268,10 +267,6 @@ class _AdminTabbedBodyState extends State<_AdminTabbedBody>
                     text: 'Audit',
                   ),
                   Tab(
-                    icon: Icon(LucideIcons.fileText, size: 16),
-                    text: 'Setup',
-                  ),
-                  Tab(
                     icon: Icon(LucideIcons.building2, size: 16),
                     text: 'Company',
                   ),
@@ -289,7 +284,6 @@ class _AdminTabbedBodyState extends State<_AdminTabbedBody>
                   ManageDevicesScreen(),
                   ManageUsersScreen(),
                   AuditLogsScreen(),
-                  ManageHeaderFooterScreen(),
                   CompanyDetailsScreen(),
                 ],
           ),
