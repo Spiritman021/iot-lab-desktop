@@ -490,6 +490,16 @@ class $DevicesTable extends Devices with TableInfo<$DevicesTable, Device> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _modeMeta = const VerificationMeta('mode');
+  @override
+  late final GeneratedColumn<String> mode = GeneratedColumn<String>(
+    'mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('5'),
+  );
   static const VerificationMeta _calibrateMeta = const VerificationMeta(
     'calibrate',
   );
@@ -555,6 +565,7 @@ class $DevicesTable extends Devices with TableInfo<$DevicesTable, Device> {
     id,
     deviceId,
     type,
+    mode,
     calibrate,
     log,
     status,
@@ -591,6 +602,12 @@ class $DevicesTable extends Devices with TableInfo<$DevicesTable, Device> {
       );
     } else if (isInserting) {
       context.missing(_typeMeta);
+    }
+    if (data.containsKey('mode')) {
+      context.handle(
+        _modeMeta,
+        mode.isAcceptableOrUnknown(data['mode']!, _modeMeta),
+      );
     }
     if (data.containsKey('calibrate')) {
       context.handle(
@@ -646,6 +663,10 @@ class $DevicesTable extends Devices with TableInfo<$DevicesTable, Device> {
         DriftSqlType.string,
         data['${effectivePrefix}type'],
       )!,
+      mode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mode'],
+      )!,
       calibrate: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}calibrate'],
@@ -679,6 +700,7 @@ class Device extends DataClass implements Insertable<Device> {
   final int id;
   final String deviceId;
   final String type;
+  final String mode;
   final bool calibrate;
   final bool log;
   final String? status;
@@ -688,6 +710,7 @@ class Device extends DataClass implements Insertable<Device> {
     required this.id,
     required this.deviceId,
     required this.type,
+    required this.mode,
     required this.calibrate,
     required this.log,
     this.status,
@@ -700,6 +723,7 @@ class Device extends DataClass implements Insertable<Device> {
     map['id'] = Variable<int>(id);
     map['device_id'] = Variable<String>(deviceId);
     map['type'] = Variable<String>(type);
+    map['mode'] = Variable<String>(mode);
     map['calibrate'] = Variable<bool>(calibrate);
     map['log'] = Variable<bool>(log);
     if (!nullToAbsent || status != null) {
@@ -717,6 +741,7 @@ class Device extends DataClass implements Insertable<Device> {
       id: Value(id),
       deviceId: Value(deviceId),
       type: Value(type),
+      mode: Value(mode),
       calibrate: Value(calibrate),
       log: Value(log),
       status: status == null && nullToAbsent
@@ -738,6 +763,7 @@ class Device extends DataClass implements Insertable<Device> {
       id: serializer.fromJson<int>(json['id']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
       type: serializer.fromJson<String>(json['type']),
+      mode: serializer.fromJson<String>(json['mode']),
       calibrate: serializer.fromJson<bool>(json['calibrate']),
       log: serializer.fromJson<bool>(json['log']),
       status: serializer.fromJson<String?>(json['status']),
@@ -752,6 +778,7 @@ class Device extends DataClass implements Insertable<Device> {
       'id': serializer.toJson<int>(id),
       'deviceId': serializer.toJson<String>(deviceId),
       'type': serializer.toJson<String>(type),
+      'mode': serializer.toJson<String>(mode),
       'calibrate': serializer.toJson<bool>(calibrate),
       'log': serializer.toJson<bool>(log),
       'status': serializer.toJson<String?>(status),
@@ -764,6 +791,7 @@ class Device extends DataClass implements Insertable<Device> {
     int? id,
     String? deviceId,
     String? type,
+    String? mode,
     bool? calibrate,
     bool? log,
     Value<String?> status = const Value.absent(),
@@ -773,6 +801,7 @@ class Device extends DataClass implements Insertable<Device> {
     id: id ?? this.id,
     deviceId: deviceId ?? this.deviceId,
     type: type ?? this.type,
+    mode: mode ?? this.mode,
     calibrate: calibrate ?? this.calibrate,
     log: log ?? this.log,
     status: status.present ? status.value : this.status,
@@ -784,6 +813,7 @@ class Device extends DataClass implements Insertable<Device> {
       id: data.id.present ? data.id.value : this.id,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
       type: data.type.present ? data.type.value : this.type,
+      mode: data.mode.present ? data.mode.value : this.mode,
       calibrate: data.calibrate.present ? data.calibrate.value : this.calibrate,
       log: data.log.present ? data.log.value : this.log,
       status: data.status.present ? data.status.value : this.status,
@@ -800,6 +830,7 @@ class Device extends DataClass implements Insertable<Device> {
           ..write('id: $id, ')
           ..write('deviceId: $deviceId, ')
           ..write('type: $type, ')
+          ..write('mode: $mode, ')
           ..write('calibrate: $calibrate, ')
           ..write('log: $log, ')
           ..write('status: $status, ')
@@ -814,6 +845,7 @@ class Device extends DataClass implements Insertable<Device> {
     id,
     deviceId,
     type,
+    mode,
     calibrate,
     log,
     status,
@@ -827,6 +859,7 @@ class Device extends DataClass implements Insertable<Device> {
           other.id == this.id &&
           other.deviceId == this.deviceId &&
           other.type == this.type &&
+          other.mode == this.mode &&
           other.calibrate == this.calibrate &&
           other.log == this.log &&
           other.status == this.status &&
@@ -838,6 +871,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
   final Value<int> id;
   final Value<String> deviceId;
   final Value<String> type;
+  final Value<String> mode;
   final Value<bool> calibrate;
   final Value<bool> log;
   final Value<String?> status;
@@ -847,6 +881,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
     this.id = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.type = const Value.absent(),
+    this.mode = const Value.absent(),
     this.calibrate = const Value.absent(),
     this.log = const Value.absent(),
     this.status = const Value.absent(),
@@ -857,6 +892,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
     this.id = const Value.absent(),
     required String deviceId,
     required String type,
+    this.mode = const Value.absent(),
     this.calibrate = const Value.absent(),
     this.log = const Value.absent(),
     this.status = const Value.absent(),
@@ -868,6 +904,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
     Expression<int>? id,
     Expression<String>? deviceId,
     Expression<String>? type,
+    Expression<String>? mode,
     Expression<bool>? calibrate,
     Expression<bool>? log,
     Expression<String>? status,
@@ -878,6 +915,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
       if (id != null) 'id': id,
       if (deviceId != null) 'device_id': deviceId,
       if (type != null) 'type': type,
+      if (mode != null) 'mode': mode,
       if (calibrate != null) 'calibrate': calibrate,
       if (log != null) 'log': log,
       if (status != null) 'status': status,
@@ -890,6 +928,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
     Value<int>? id,
     Value<String>? deviceId,
     Value<String>? type,
+    Value<String>? mode,
     Value<bool>? calibrate,
     Value<bool>? log,
     Value<String?>? status,
@@ -900,6 +939,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
       id: id ?? this.id,
       deviceId: deviceId ?? this.deviceId,
       type: type ?? this.type,
+      mode: mode ?? this.mode,
       calibrate: calibrate ?? this.calibrate,
       log: log ?? this.log,
       status: status ?? this.status,
@@ -919,6 +959,9 @@ class DevicesCompanion extends UpdateCompanion<Device> {
     }
     if (type.present) {
       map['type'] = Variable<String>(type.value);
+    }
+    if (mode.present) {
+      map['mode'] = Variable<String>(mode.value);
     }
     if (calibrate.present) {
       map['calibrate'] = Variable<bool>(calibrate.value);
@@ -944,6 +987,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
           ..write('id: $id, ')
           ..write('deviceId: $deviceId, ')
           ..write('type: $type, ')
+          ..write('mode: $mode, ')
           ..write('calibrate: $calibrate, ')
           ..write('log: $log, ')
           ..write('status: $status, ')
@@ -4151,6 +4195,7 @@ typedef $$DevicesTableCreateCompanionBuilder =
       Value<int> id,
       required String deviceId,
       required String type,
+      Value<String> mode,
       Value<bool> calibrate,
       Value<bool> log,
       Value<String?> status,
@@ -4162,6 +4207,7 @@ typedef $$DevicesTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> deviceId,
       Value<String> type,
+      Value<String> mode,
       Value<bool> calibrate,
       Value<bool> log,
       Value<String?> status,
@@ -4232,6 +4278,11 @@ class $$DevicesTableFilterComposer
 
   ColumnFilters<String> get type => $composableBuilder(
     column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mode => $composableBuilder(
+    column: $table.mode,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4335,6 +4386,11 @@ class $$DevicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get mode => $composableBuilder(
+    column: $table.mode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get calibrate => $composableBuilder(
     column: $table.calibrate,
     builder: (column) => ColumnOrderings(column),
@@ -4378,6 +4434,9 @@ class $$DevicesTableAnnotationComposer
 
   GeneratedColumn<String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get mode =>
+      $composableBuilder(column: $table.mode, builder: (column) => column);
 
   GeneratedColumn<bool> get calibrate =>
       $composableBuilder(column: $table.calibrate, builder: (column) => column);
@@ -4478,6 +4537,7 @@ class $$DevicesTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
                 Value<String> type = const Value.absent(),
+                Value<String> mode = const Value.absent(),
                 Value<bool> calibrate = const Value.absent(),
                 Value<bool> log = const Value.absent(),
                 Value<String?> status = const Value.absent(),
@@ -4487,6 +4547,7 @@ class $$DevicesTableTableManager
                 id: id,
                 deviceId: deviceId,
                 type: type,
+                mode: mode,
                 calibrate: calibrate,
                 log: log,
                 status: status,
@@ -4498,6 +4559,7 @@ class $$DevicesTableTableManager
                 Value<int> id = const Value.absent(),
                 required String deviceId,
                 required String type,
+                Value<String> mode = const Value.absent(),
                 Value<bool> calibrate = const Value.absent(),
                 Value<bool> log = const Value.absent(),
                 Value<String?> status = const Value.absent(),
@@ -4507,6 +4569,7 @@ class $$DevicesTableTableManager
                 id: id,
                 deviceId: deviceId,
                 type: type,
+                mode: mode,
                 calibrate: calibrate,
                 log: log,
                 status: status,

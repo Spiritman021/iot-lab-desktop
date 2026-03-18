@@ -385,8 +385,8 @@ class _CalibrationTabState extends State<_CalibrationTab> {
   int _calibrateIndex = 0;
   bool _calibrateStarted = false;
 
-  // Local mutable copy of config & rows
-  late String _mode;
+  // Mode is read from device (set at device creation/edit level)
+  String get _mode => widget.device.mode;
   late String? _probe;
   late List<_CalRow> _localRows;
 
@@ -400,7 +400,6 @@ class _CalibrationTabState extends State<_CalibrationTab> {
   @override
   void initState() {
     super.initState();
-    _mode = widget.config?.mode ?? '5';
     _probe = widget.config?.probe;
     _localRows = widget.rows
         .map((r) => _CalRow(
@@ -629,36 +628,7 @@ class _CalibrationTabState extends State<_CalibrationTab> {
     );
   }
 
-  void _onModeChanged(String newMode) {
-    final isEc = widget.device.type == 'ec';
-    final deviceId = widget.device.deviceId;
-
-    widget.mqttService.publishToDevice(
-      '/$deviceId/CAL_MODE',
-      newMode == '5' ? '2' : '1',
-    );
-
-    // Get default rows for this mode
-    CalibrationConfig config;
-    if (isEc) {
-      config = newMode == '1'
-          ? ecConfig1
-          : newMode == '2'
-              ? ecConfig2
-              : ecConfig3;
-    } else {
-      config = newMode == '3' ? phConfig3 : phConfig5;
-    }
-
-    setState(() {
-      _mode = newMode;
-      _localRows = config.values.asMap().entries.map((e) {
-        final existingId =
-            e.key < widget.rows.length ? widget.rows[e.key].id : -1;
-        return _CalRow(id: existingId, val: e.value);
-      }).toList();
-    });
-  }
+  // Mode is read-only from device — no _onModeChanged needed
 
   void _showEditTableDialog() {
     showDialog(
@@ -771,29 +741,14 @@ class _CalibrationTabState extends State<_CalibrationTab> {
           // Mode / Probe selectors + action buttons
           Row(
             children: [
-              // Mode selector — using DropdownButton (not FormField) so value updates reactively
+              // Mode display (read-only, set at device level)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   border: Border.all(color: theme.colorScheme.outline),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: DropdownButton<String>(
-                  value: _mode,
-                  underline: const SizedBox.shrink(),
-                  isDense: true,
-                  items: (isEc ? ['1', '2', '3'] : ['3', '5'])
-                      .map((m) => DropdownMenuItem(
-                            value: m,
-                            child: Text('Mode $m'),
-                          ))
-                      .toList(),
-                  onChanged: shouldDisable
-                      ? null
-                      : (val) {
-                          if (val != null) _onModeChanged(val);
-                        },
-                ),
+                child: Text('Mode $_mode', style: theme.textTheme.bodyMedium),
               ),
               const SizedBox(width: 12),
               // Probe selector (EC only)

@@ -71,15 +71,6 @@ class AppScaffoldState extends State<AppScaffold> {
         context.go('/');
         break;
       case 1:
-        context.go('/settings/devices');
-        break;
-      case 2:
-        context.go('/settings/users');
-        break;
-      case 3:
-        context.go('/settings/setup');
-        break;
-      case 4:
         context.go('/settings/admin');
         break;
     }
@@ -96,14 +87,8 @@ class AppScaffoldState extends State<AppScaffold> {
     // Update selected index based on current route
     final location = GoRouterState.of(context).matchedLocation;
     int currentIndex = 0;
-    if (location.startsWith('/settings/devices')) {
+    if (location.startsWith('/settings')) {
       currentIndex = 1;
-    } else if (location.startsWith('/settings/users')) {
-      currentIndex = 2;
-    } else if (location.startsWith('/settings/setup')) {
-      currentIndex = 3;
-    } else if (location.startsWith('/settings/admin')) {
-      currentIndex = 4;
     }
     if (currentIndex != _selectedIndex) {
       _selectedIndex = currentIndex;
@@ -213,18 +198,6 @@ class AppScaffoldState extends State<AppScaffold> {
               NavigationRailDestination(
                 icon: Icon(LucideIcons.home),
                 label: Text('Dashboard'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(LucideIcons.settings2),
-                label: Text('Devices'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(LucideIcons.users),
-                label: Text('Users'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(LucideIcons.fileText),
-                label: Text('Setup'),
               ),
               NavigationRailDestination(
                 icon: Icon(LucideIcons.shieldCheck),

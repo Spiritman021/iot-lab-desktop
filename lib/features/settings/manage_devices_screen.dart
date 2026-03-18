@@ -96,6 +96,8 @@ class _ManageDevicesScreenState extends State<ManageDevicesScreen> {
                                 DataColumn(label: Text('#')),
                                 DataColumn(label: Text('Device ID')),
                                 DataColumn(label: Text('Device Type')),
+                                DataColumn(label: Text('Mode')),
+                                DataColumn(label: Text('Actions')),
                               ],
                               rows: _devices.asMap().entries.map((entry) {
                                 final idx = entry.key;
@@ -105,6 +107,30 @@ class _ManageDevicesScreenState extends State<ManageDevicesScreen> {
                                       '${(_page - 1) * paginationLimit + idx + 1}')),
                                   DataCell(Text(device.deviceId)),
                                   DataCell(Text(device.type.toUpperCase())),
+                                  DataCell(Text('Mode ${device.mode}')),
+                                  DataCell(Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(LucideIcons.pencil,
+                                            size: 16,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary),
+                                        tooltip: 'Edit',
+                                        onPressed: () =>
+                                            _showEditDeviceDialog(device),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(LucideIcons.trash2,
+                                            size: 16,
+                                            color: Colors.red.shade600),
+                                        tooltip: 'Delete',
+                                        onPressed: () =>
+                                            _confirmDeleteDevice(device),
+                                      ),
+                                    ],
+                                  )),
                                 ]);
                               }).toList(),
                             ),
@@ -179,6 +205,231 @@ class _ManageDevicesScreenState extends State<ManageDevicesScreen> {
       ),
     );
   }
+
+  void _showEditDeviceDialog(Device device) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _EditDeviceDialog(
+        device: device,
+        onUpdated: _loadDevices,
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteDevice(Device device) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Device'),
+        content: Text(
+            'Are you sure you want to delete "${device.deviceId}"? This will also delete all calibration data and logs.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        // Delete config and calibration rows first
+        final config = await _db.getConfigForDevice(device.id);
+        if (config != null) {
+          await _db.deleteCalibrationRowsForConfig(config.id);
+        }
+        // Delete logs
+        await _db.deleteLogsForDevice(device.id);
+        // Delete device (cascades to config via foreign key)
+        await _db.deleteDevice(device.id);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Device deleted'),
+                backgroundColor: Colors.green),
+          );
+          _loadDevices();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Error: ${e.toString()}'),
+                backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+}
+
+/// Edit Device dialog — allows changing the calibration mode
+class _EditDeviceDialog extends StatefulWidget {
+  final Device device;
+  final VoidCallback onUpdated;
+
+  const _EditDeviceDialog({required this.device, required this.onUpdated});
+
+  @override
+  State<_EditDeviceDialog> createState() => _EditDeviceDialogState();
+}
+
+class _EditDeviceDialogState extends State<_EditDeviceDialog> {
+  final AppDatabase _db = AppDatabase.instance;
+  late String _selectedMode;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMode = widget.device.mode;
+  }
+
+  Future<void> _handleSave() async {
+    setState(() => _loading = true);
+
+    try {
+      // Update device mode
+      await _db.updateDevice(
+        widget.device.id,
+        DevicesCompanion(mode: Value(_selectedMode)),
+      );
+
+      // Update config + calibration rows if mode changed
+      if (_selectedMode != widget.device.mode) {
+        final config = await _db.getConfigForDevice(widget.device.id);
+        if (config != null) {
+          // Delete old calibration rows
+          await _db.deleteCalibrationRowsForConfig(config.id);
+          // Update config mode
+          await _db.updateDeviceConfig(
+            config.id,
+            DeviceConfigsCompanion(mode: Value(_selectedMode)),
+          );
+          // Insert new default calibration rows
+          final CalibrationConfig defaultConfig;
+          if (widget.device.type == 'ec') {
+            defaultConfig = _selectedMode == '1'
+                ? ecConfig1
+                : _selectedMode == '2'
+                    ? ecConfig2
+                    : ecConfig3;
+          } else {
+            defaultConfig =
+                _selectedMode == '3' ? phConfig3 : phConfig5;
+          }
+          for (final val in defaultConfig.values) {
+            await _db.insertCalibrationRow(CalibrationRowsCompanion.insert(
+              configId: config.id,
+              val: val,
+            ));
+          }
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Device updated'),
+              backgroundColor: Colors.green),
+        );
+        widget.onUpdated();
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red),
+        );
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isPh = widget.device.type == 'ph';
+
+    return AlertDialog(
+      title: Text('Edit Device: ${widget.device.deviceId}'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Read-only device info
+          Text('Device Type: ${widget.device.type.toUpperCase()}',
+              style: const TextStyle(fontSize: 14)),
+          const SizedBox(height: 16),
+
+          // Calibration Mode selector
+          DropdownButtonFormField<String>(
+            initialValue: _selectedMode,
+            decoration: const InputDecoration(labelText: 'Calibration Mode'),
+            items: (isPh ? ['3', '5'] : ['1', '2', '3'])
+                .map((m) => DropdownMenuItem(
+                      value: m,
+                      child: Text('Mode $m'),
+                    ))
+                .toList(),
+            onChanged: (val) {
+              if (val != null) setState(() => _selectedMode = val);
+            },
+          ),
+
+          const SizedBox(height: 8),
+          if (_selectedMode != widget.device.mode)
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  Icon(LucideIcons.alertTriangle,
+                      size: 16, color: Colors.orange.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Changing mode will reset calibration data',
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.orange.shade700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          onPressed: _loading ? null : _handleSave,
+          icon: _loading
+              ? const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
+                )
+              : const Icon(LucideIcons.save, size: 16),
+          label: const Text('Save'),
+        ),
+      ],
+    );
+  }
 }
 
 
@@ -199,6 +450,7 @@ class _CreateDeviceDialogState extends State<_CreateDeviceDialog> {
   final MqttService _mqttService = MqttService.instance;
   final _deviceIdController = TextEditingController();
   String _selectedType = 'ph';
+  String _selectedMode = '5'; // PH: '3' or '5'
   bool _loading = false;
 
   /// Discovered device IDs from MQTT /METER/ID topic
@@ -273,15 +525,24 @@ class _CreateDeviceDialogState extends State<_CreateDeviceDialog> {
     }
 
     try {
-      // Create device
+      // Create device with mode
       final devicePk = await _db.insertDevice(DevicesCompanion.insert(
         deviceId: deviceId,
         type: _selectedType,
+        mode: Value(_selectedMode),
       ));
 
-      // Create default config (matching web app's logic)
-      final defaultConfig =
-          _selectedType == 'ec' ? ecConfig3 : phConfig5;
+      // Create default config using the selected mode
+      final CalibrationConfig defaultConfig;
+      if (_selectedType == 'ec') {
+        defaultConfig = _selectedMode == '1'
+            ? ecConfig1
+            : _selectedMode == '2'
+                ? ecConfig2
+                : ecConfig3;
+      } else {
+        defaultConfig = _selectedMode == '3' ? phConfig3 : phConfig5;
+      }
 
       final configId =
           await _db.insertDeviceConfig(DeviceConfigsCompanion.insert(
@@ -382,7 +643,8 @@ class _CreateDeviceDialogState extends State<_CreateDeviceDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                color: theme.colorScheme.primaryContainer
+                    .withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -437,7 +699,28 @@ class _CreateDeviceDialogState extends State<_CreateDeviceDialog> {
               DropdownMenuItem(value: 'ec', child: Text('EC')),
             ],
             onChanged: (val) {
-              if (val != null) setState(() => _selectedType = val);
+              if (val != null) {
+                setState(() {
+                  _selectedType = val;
+                  // Reset mode to defaults when type changes
+                  _selectedMode = val == 'ph' ? '5' : '3';
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+          // Calibration Mode — shown for both PH and EC
+          DropdownButtonFormField<String>(
+            initialValue: _selectedMode,
+            decoration: const InputDecoration(labelText: 'Calibration Mode'),
+            items: (_selectedType == 'ph' ? ['3', '5'] : ['1', '2', '3'])
+                .map((m) => DropdownMenuItem(
+                      value: m,
+                      child: Text('Mode $m'),
+                    ))
+                .toList(),
+            onChanged: (val) {
+              if (val != null) setState(() => _selectedMode = val);
             },
           ),
         ],

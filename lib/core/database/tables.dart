@@ -18,6 +18,7 @@ class Devices extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get deviceId => text().unique()(); // e.g. "EPT001"
   TextColumn get type => text()(); // "ph" or "ec"
+  TextColumn get mode => text().withDefault(const Constant('5'))(); // "3" or "5" for PH, "1"/"2"/"3" for EC
   BoolColumn get calibrate => boolean().withDefault(const Constant(false))();
   BoolColumn get log => boolean().withDefault(const Constant(false))();
   TextColumn get status => text().nullable()();

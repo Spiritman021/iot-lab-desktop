@@ -6,9 +6,6 @@ import '../features/dashboard/dashboard_screen.dart';
 import '../features/homepage/homepage_screen.dart';
 import '../features/layout/app_scaffold.dart';
 import '../features/settings/admin_settings_screen.dart';
-import '../features/settings/manage_devices_screen.dart';
-import '../features/settings/manage_header_footer_screen.dart';
-import '../features/settings/manage_users_screen.dart';
 import '../core/auth/auth_service.dart';
 
 /// App router — matching the web app's AppRoutes.tsx
@@ -55,18 +52,6 @@ GoRouter createRouter(AuthService authService) {
             },
           ),
           GoRoute(
-            path: '/settings/devices',
-            builder: (context, state) => const ManageDevicesScreen(),
-          ),
-          GoRoute(
-            path: '/settings/users',
-            builder: (context, state) => const ManageUsersScreen(),
-          ),
-          GoRoute(
-            path: '/settings/setup',
-            builder: (context, state) => const ManageHeaderFooterScreen(),
-          ),
-          GoRoute(
             path: '/settings/admin',
             builder: (context, state) => const AdminSettingsScreen(),
           ),
@@ -75,3 +60,4 @@ GoRouter createRouter(AuthService authService) {
     ],
   );
 }
+

@@ -4,9 +4,12 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/mqtt/mqtt_service.dart';
+import 'manage_devices_screen.dart';
+import 'manage_header_footer_screen.dart';
+import 'manage_users_screen.dart';
 
 /// Admin Settings screen — requires password re-authentication.
-/// Currently contains MQTT broker configuration.
+/// After auth, shows tabs: MQTT | Devices | Users | Setup
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
 
@@ -24,7 +27,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         onAuthenticated: () => setState(() => _authenticated = true),
       );
     }
-    return const _AdminSettingsBody();
+    return const _AdminTabbedBody();
   }
 }
 
@@ -178,16 +181,107 @@ class _PasswordGateState extends State<_PasswordGate> {
   }
 }
 
-// ─── Admin Settings Body ─────────────────────────────────────────────────────
+// ─── Admin Tabbed Body (MQTT | Devices | Users | Setup) ─────────────────────
 
-class _AdminSettingsBody extends StatefulWidget {
-  const _AdminSettingsBody();
+class _AdminTabbedBody extends StatefulWidget {
+  const _AdminTabbedBody();
 
   @override
-  State<_AdminSettingsBody> createState() => _AdminSettingsBodyState();
+  State<_AdminTabbedBody> createState() => _AdminTabbedBodyState();
 }
 
-class _AdminSettingsBodyState extends State<_AdminSettingsBody> {
+class _AdminTabbedBodyState extends State<_AdminTabbedBody>
+    with TickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        // Header + TabBar
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(LucideIcons.settings, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Admin Settings',
+                    style: theme.textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabs: const [
+                  Tab(
+                    icon: Icon(LucideIcons.radio, size: 16),
+                    text: 'MQTT',
+                  ),
+                  Tab(
+                    icon: Icon(LucideIcons.settings2, size: 16),
+                    text: 'Devices',
+                  ),
+                  Tab(
+                    icon: Icon(LucideIcons.users, size: 16),
+                    text: 'Users',
+                  ),
+                  Tab(
+                    icon: Icon(LucideIcons.fileText, size: 16),
+                    text: 'Setup',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        // Tab content
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: const [
+              _MqttSettingsTab(),
+              ManageDevicesScreen(),
+              ManageUsersScreen(),
+              ManageHeaderFooterScreen(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── MQTT Settings Tab (extracted from old _AdminSettingsBody) ───────────────
+
+class _MqttSettingsTab extends StatefulWidget {
+  const _MqttSettingsTab();
+
+  @override
+  State<_MqttSettingsTab> createState() => _MqttSettingsTabState();
+}
+
+class _MqttSettingsTabState extends State<_MqttSettingsTab> {
   final _mqttService = MqttService.instance;
   late final TextEditingController _urlController;
   late final TextEditingController _portController;
@@ -261,20 +355,6 @@ class _AdminSettingsBodyState extends State<_AdminSettingsBody> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Row(
-            children: [
-              Icon(LucideIcons.settings, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                'Admin Settings',
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
           // MQTT Configuration Card
           Card(
             elevation: 1,
@@ -338,7 +418,8 @@ class _AdminSettingsBodyState extends State<_AdminSettingsBody> {
                                 children: [
                                   Text(
                                     connected ? 'Connected' : 'Disconnected',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                    style:
+                                        theme.textTheme.bodyMedium?.copyWith(
                                       fontWeight: FontWeight.w600,
                                       color: connected
                                           ? Colors.green.shade700
@@ -347,8 +428,10 @@ class _AdminSettingsBodyState extends State<_AdminSettingsBody> {
                                   ),
                                   Text(
                                     _mqttService.statusMessage,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
+                                    style:
+                                        theme.textTheme.bodySmall?.copyWith(
+                                      color:
+                                          theme.colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -437,7 +520,8 @@ class _AdminSettingsBodyState extends State<_AdminSettingsBody> {
                                           const Duration(milliseconds: 500));
                                       _connectMqtt();
                                     },
-                              icon: const Icon(LucideIcons.refreshCw, size: 16),
+                              icon: const Icon(LucideIcons.refreshCw,
+                                  size: 16),
                               label: const Text('Reconnect'),
                             ),
                         ],
