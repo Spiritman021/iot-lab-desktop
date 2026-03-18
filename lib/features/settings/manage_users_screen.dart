@@ -5,9 +5,9 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/constants.dart';
 import '../../core/database/app_database.dart';
-import '../layout/app_scaffold.dart';
 
-/// Manage Users screen — matches web app's ManageUsers.tsx
+/// Manage Users screen — shows all users with create/edit/delete actions.
+/// Role options are Admin, Lab Tech, Viewer.
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({super.key});
 
@@ -55,14 +55,25 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   }
 
   Future<void> _deleteUser(User user) async {
-    final currentUser = AppScaffold.of(context).authService.currentUser;
+    final currentUser = AuthService.instance.currentUser;
     if (currentUser == null) return;
 
-    // canMutate check (matching backend logic)
+    // Prevent deleting yourself
+    if (user.id == currentUser.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You cannot delete your own account'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Only admin can delete
     if (!AuthService.canMutate(user.role, currentUser.role)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('You cannot delete a user with higher privileges'),
+          content: Text('You do not have permission to delete users'),
           backgroundColor: Colors.red,
         ),
       );
@@ -158,41 +169,29 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                                       '${(_page - 1) * paginationLimit + idx + 1}')),
                                   DataCell(Text(user.name)),
                                   DataCell(Text(user.email)),
-                                  DataCell(Text(user.role.toUpperCase())),
+                                  DataCell(Text(
+                                      UserRoles.displayName(user.role))),
                                   DataCell(
-                                    PopupMenuButton<String>(
-                                      icon: const Icon(LucideIcons.moreVertical,
-                                          size: 16),
-                                      itemBuilder: (ctx) => [
-                                        const PopupMenuItem(
-                                          value: 'edit',
-                                          child: Row(
-                                            children: [
-                                              Icon(LucideIcons.pencil,
-                                                  size: 14),
-                                              SizedBox(width: 8),
-                                              Text('Edit'),
-                                            ],
-                                          ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(LucideIcons.pencil,
+                                              size: 16,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary),
+                                          tooltip: 'Edit',
+                                          onPressed: () => _editUser(user),
                                         ),
-                                        const PopupMenuItem(
-                                          value: 'delete',
-                                          child: Row(
-                                            children: [
-                                              Icon(LucideIcons.trash2,
-                                                  size: 14, color: Colors.red),
-                                              SizedBox(width: 8),
-                                              Text('Delete',
-                                                  style: TextStyle(
-                                                      color: Colors.red)),
-                                            ],
-                                          ),
+                                        IconButton(
+                                          icon: Icon(LucideIcons.trash2,
+                                              size: 16,
+                                              color: Colors.red.shade600),
+                                          tooltip: 'Delete',
+                                          onPressed: () => _deleteUser(user),
                                         ),
                                       ],
-                                      onSelected: (val) {
-                                        if (val == 'edit') _editUser(user);
-                                        if (val == 'delete') _deleteUser(user);
-                                      },
                                     ),
                                   ),
                                 ]);
@@ -269,7 +268,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   }
 }
 
-/// Create User dialog
+/// Create User dialog — role dropdown with Admin / Lab Tech / Viewer
 class _CreateUserDialog extends StatefulWidget {
   final VoidCallback onCreated;
 
@@ -284,8 +283,9 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  String _selectedRole = 'user';
+  String _selectedRole = UserRoles.labtech;
   bool _loading = false;
+  bool _obscurePassword = true;
 
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
@@ -346,14 +346,24 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
             TextFormField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Email'),
+              keyboardType: TextInputType.emailAddress,
               validator: (v) =>
                   v == null || v.trim().isEmpty ? 'Required' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password'),
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                suffixIcon: IconButton(
+                  icon: Icon(_obscurePassword
+                      ? LucideIcons.eyeOff
+                      : LucideIcons.eye),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
               validator: (v) => v == null || v.length < 6
                   ? 'Min 6 characters'
                   : null,
@@ -362,10 +372,12 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
             DropdownButtonFormField<String>(
               initialValue: _selectedRole,
               decoration: const InputDecoration(labelText: 'Role'),
-              items: const [
-                DropdownMenuItem(value: 'user', child: Text('User')),
-                DropdownMenuItem(value: 'admin', child: Text('Admin')),
-              ],
+              items: UserRoles.all
+                  .map((r) => DropdownMenuItem(
+                        value: r,
+                        child: Text(UserRoles.displayName(r)),
+                      ))
+                  .toList(),
               onChanged: (v) {
                 if (v != null) setState(() => _selectedRole = v);
               },
@@ -377,22 +389,23 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
         TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel')),
-        FilledButton(
+        FilledButton.icon(
           onPressed: _loading ? null : _handleSave,
-          child: _loading
+          icon: _loading
               ? const SizedBox(
                   height: 16,
                   width: 16,
-                  child:
-                      CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Text('Save'),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white))
+              : const Icon(LucideIcons.save, size: 16),
+          label: const Text('Save'),
         ),
       ],
     );
   }
 }
 
-/// Edit User dialog
+/// Edit User dialog — allows changing name, email, role
 class _EditUserDialog extends StatefulWidget {
   final User user;
   final VoidCallback onUpdated;
@@ -477,12 +490,12 @@ class _EditUserDialogState extends State<_EditUserDialog> {
           DropdownButtonFormField<String>(
             initialValue: _selectedRole,
             decoration: const InputDecoration(labelText: 'Role'),
-            items: const [
-              DropdownMenuItem(value: 'user', child: Text('User')),
-              DropdownMenuItem(value: 'admin', child: Text('Admin')),
-              DropdownMenuItem(
-                  value: 'superuser', child: Text('Superuser')),
-            ],
+            items: UserRoles.all
+                .map((r) => DropdownMenuItem(
+                      value: r,
+                      child: Text(UserRoles.displayName(r)),
+                    ))
+                .toList(),
             onChanged: (v) {
               if (v != null) setState(() => _selectedRole = v);
             },
@@ -493,15 +506,16 @@ class _EditUserDialogState extends State<_EditUserDialog> {
         TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel')),
-        FilledButton(
+        FilledButton.icon(
           onPressed: _loading ? null : _handleSave,
-          child: _loading
+          icon: _loading
               ? const SizedBox(
                   height: 16,
                   width: 16,
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.white))
-              : const Text('Save'),
+              : const Icon(LucideIcons.save, size: 16),
+          label: const Text('Save'),
         ),
       ],
     );

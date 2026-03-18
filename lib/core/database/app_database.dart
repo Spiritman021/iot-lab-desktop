@@ -73,6 +73,12 @@ class AppDatabase extends _$AppDatabase {
         .getSingleOrNull();
   }
 
+  /// Get any admin user (for first-time setup check)
+  Future<User?> getAdminUser() {
+    return (select(users)..where((t) => t.role.equals('admin')))
+        .getSingleOrNull();
+  }
+
   Future<int> insertUser(UsersCompanion user) {
     return into(users).insert(user);
   }

@@ -4,7 +4,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../core/auth/auth_service.dart';
 
-/// Register screen — matches web app's RegisterForm component
+/// Register screen — ONLY used for first-time Admin setup.
+/// If admin already exists, redirects to /login.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -20,22 +21,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _authService = AuthService.instance;
   bool _loading = false;
   bool _obscurePassword = true;
-  bool _isSuperuserSetup = false;
-  String _selectedRole = 'user';
 
   @override
   void initState() {
     super.initState();
-    _checkSuperuser();
+    _checkAdmin();
   }
 
-  Future<void> _checkSuperuser() async {
-    final exists = await _authService.superuserExists();
-    if (mounted) {
-      setState(() {
-        _isSuperuserSetup = !exists;
-        if (_isSuperuserSetup) _selectedRole = 'superuser';
-      });
+  Future<void> _checkAdmin() async {
+    final exists = await _authService.adminExists();
+    if (exists && mounted) {
+      // Admin already exists — no more signups allowed from this page
+      context.go('/login');
     }
   }
 
@@ -44,16 +41,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _loading = true);
     try {
+      // First-time setup always creates Admin
       await _authService.register(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        role: _selectedRole,
+        role: UserRoles.admin,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('User registered successfully'),
+            content: Text('Admin account created successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -122,10 +120,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _isSuperuserSetup
-                            ? 'Setup Superuser Account'
-                            : 'Create an account',
+                        'Setup Admin Account',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Create the first admin account to get started.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurfaceVariant,
@@ -188,26 +193,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 16),
-                      // Role (only if not superuser setup)
-                      if (!_isSuperuserSetup)
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedRole,
-                          decoration: const InputDecoration(
-                            labelText: 'Role',
-                          ),
-                          items: const [
-                            DropdownMenuItem(
-                                value: 'user', child: Text('User')),
-                            DropdownMenuItem(
-                                value: 'admin', child: Text('Admin')),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _selectedRole = val);
-                            }
-                          },
+                      const SizedBox(height: 8),
+                      // Info chip — role is fixed to Admin
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primaryContainer
+                              .withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(8),
                         ),
+                        child: Row(
+                          children: [
+                            Icon(LucideIcons.shieldCheck,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'This account will be created as Admin',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 24),
                       // Submit
                       FilledButton(
@@ -219,16 +236,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2, color: Colors.white),
                               )
-                            : const Text('Register'),
+                            : const Text('Create Admin Account'),
                       ),
-                      const SizedBox(height: 12),
-                      // Login link
-                      if (!_isSuperuserSetup)
-                        TextButton(
-                          onPressed: () => context.go('/login'),
-                          child:
-                              const Text('Already have an account? Login'),
-                        ),
+                      // No login link — this page only appears on first launch
                     ],
                   ),
                 ),

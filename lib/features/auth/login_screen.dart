@@ -4,7 +4,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../core/auth/auth_service.dart';
 
-/// Login screen — matches web app's LoginForm component
+/// Login screen — if no admin exists, redirects to /register for first-time setup.
+/// After admin exists, the register link is hidden — users are created inside the app.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -23,12 +24,13 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _checkSuperuser();
+    _checkAdmin();
   }
 
-  Future<void> _checkSuperuser() async {
-    final exists = await _authService.superuserExists();
+  Future<void> _checkAdmin() async {
+    final exists = await _authService.adminExists();
     if (!exists && mounted) {
+      // No admin yet — redirect to first-time setup
       context.go('/register');
     }
   }
@@ -164,12 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               )
                             : const Text('Login'),
                       ),
-                      const SizedBox(height: 12),
-                      // Register link
-                      TextButton(
-                        onPressed: () => context.go('/register'),
-                        child: const Text("Don't have an account? Register"),
-                      ),
+                      // No register link — users are created by Admin inside the app
                     ],
                   ),
                 ),

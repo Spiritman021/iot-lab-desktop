@@ -5,8 +5,33 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database/app_database.dart';
 
-/// Auth service — replaces backend's user.service.ts JWT auth.
-/// Uses local SQLite + bcrypt with SharedPreferences for session persistence.
+/// User roles — Admin / Lab Tech / Viewer
+class UserRoles {
+  static const String admin = 'admin';
+  static const String labtech = 'labtech';
+  static const String viewer = 'viewer';
+
+  /// Display-friendly name
+  static String displayName(String role) {
+    switch (role) {
+      case admin:
+        return 'Admin';
+      case labtech:
+        return 'Lab Tech';
+      case viewer:
+        return 'Viewer';
+      default:
+        return role.toUpperCase();
+    }
+  }
+
+  /// All roles for dropdown
+  static const List<String> all = [admin, labtech, viewer];
+}
+
+/// Auth service — handles local auth with SQLite + bcrypt.
+/// First signup creates the Admin account; subsequent users are
+/// created by the Admin from within the app.
 class AuthService extends ChangeNotifier {
   AuthService._();
 
@@ -26,10 +51,9 @@ class AuthService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _currentUser != null;
 
-  /// Role hierarchy check (matches backend's canMutate)
+  /// Role hierarchy check — admin can mutate anyone, others cannot
   static bool canMutate(String targetRole, String currentRole) {
-    if (currentRole == 'user') return false;
-    if (currentRole == 'admin' && targetRole == 'superuser') return false;
+    if (currentRole != UserRoles.admin) return false;
     return true;
   }
 
@@ -50,25 +74,17 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Register a new user (matches backend's registerUser)
+  /// Register a new user
   Future<String> register({
     required String name,
     required String email,
     required String password,
-    String role = 'user',
+    String role = UserRoles.viewer,
   }) async {
     // Check if email already exists
     final existing = await _db.getUserByEmail(email);
     if (existing != null) {
       throw Exception('Email already registered');
-    }
-
-    // Only one superuser allowed
-    if (role == 'superuser') {
-      final superuser = await _db.getSuperuser();
-      if (superuser != null) {
-        throw Exception('Superuser already exists');
-      }
     }
 
     final hash = BCrypt.hashpw(password, BCrypt.gensalt());
@@ -82,7 +98,7 @@ class AuthService extends ChangeNotifier {
     return 'User registered successfully';
   }
 
-  /// Login (matches backend's loginUser)
+  /// Login
   Future<User> login({
     required String email,
     required String password,
@@ -115,9 +131,12 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Check if superuser exists (matches backend's getSuperuser)
-  Future<bool> superuserExists() async {
-    final user = await _db.getSuperuser();
+  /// Check if any admin user exists (first-time setup check)
+  Future<bool> adminExists() async {
+    final user = await _db.getAdminUser();
     return user != null;
   }
+
+  // Keep backward compat for any remaining references
+  Future<bool> superuserExists() => adminExists();
 }
