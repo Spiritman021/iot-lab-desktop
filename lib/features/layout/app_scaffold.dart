@@ -86,22 +86,43 @@ class AppScaffoldState extends State<AppScaffold> {
   Widget build(BuildContext context) {
     // Update selected index based on current route
     final location = GoRouterState.of(context).matchedLocation;
+    final user = _authService.currentUser;
+    final isAdmin = user != null && UserRoles.canAccessAdmin(user.role);
+
+    // Build destinations based on role
+    final destinations = <NavigationRailDestination>[
+      const NavigationRailDestination(
+        icon: Icon(LucideIcons.home),
+        label: Text('Dashboard'),
+      ),
+      if (isAdmin)
+        const NavigationRailDestination(
+          icon: Icon(LucideIcons.shieldCheck),
+          label: Text('Admin'),
+        ),
+    ];
+
     int currentIndex = 0;
-    if (location.startsWith('/settings')) {
+    if (isAdmin && location.startsWith('/settings')) {
       currentIndex = 1;
     }
     if (currentIndex != _selectedIndex) {
       _selectedIndex = currentIndex;
     }
 
-    final user = _authService.currentUser;
+    // Non-admin trying to access /settings — redirect
+    if (!isAdmin && location.startsWith('/settings')) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.go('/');
+      });
+    }
 
     return Scaffold(
       body: Row(
         children: [
           // Sidebar
           NavigationRail(
-            selectedIndex: _selectedIndex,
+            selectedIndex: _selectedIndex.clamp(0, destinations.length - 1),
             onDestinationSelected: _onDestinationSelected,
             labelType: NavigationRailLabelType.all,
             leading: Padding(
@@ -167,7 +188,7 @@ class AppScaffoldState extends State<AppScaffold> {
                     tooltip: 'Logout',
                   ),
                   const SizedBox(height: 8),
-                  // User info
+                  // User info with role
                   if (user != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -188,22 +209,20 @@ class AppScaffoldState extends State<AppScaffold> {
                             style: Theme.of(context).textTheme.labelSmall,
                             overflow: TextOverflow.ellipsis,
                           ),
+                          Text(
+                            UserRoles.displayName(user.role),
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: 9,
+                                ),
+                          ),
                         ],
                       ),
                     ),
                 ],
               ),
             ),
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(LucideIcons.home),
-                label: Text('Dashboard'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(LucideIcons.shieldCheck),
-                label: Text('Admin'),
-              ),
-            ],
+            destinations: destinations,
           ),
           const VerticalDivider(width: 1),
           // Main content

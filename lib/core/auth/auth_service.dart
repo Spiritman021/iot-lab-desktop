@@ -27,6 +27,26 @@ class UserRoles {
 
   /// All roles for dropdown
   static const List<String> all = [admin, labtech, viewer];
+
+  /// Permission helpers
+  /// Admin: full access to everything
+  /// Lab Tech: can log, graph, alarm, print calibration — but NOT start/reset/edit calibration
+  /// Viewer: view-only, no actions at all
+
+  /// Can perform calibration actions (start, reset, edit table)
+  static bool canCalibrate(String role) => role == admin;
+
+  /// Can perform logging, graph, alarm actions
+  static bool canLog(String role) => role == admin || role == labtech;
+
+  /// Can set alarm values
+  static bool canAlarm(String role) => role == admin || role == labtech;
+
+  /// Can access admin settings
+  static bool canAccessAdmin(String role) => role == admin;
+
+  /// Is view-only (no actions at all)
+  static bool isViewOnly(String role) => role == viewer;
 }
 
 /// Auth service — handles local auth with SQLite + bcrypt.

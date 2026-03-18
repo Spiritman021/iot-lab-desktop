@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../core/auth/auth_service.dart';
 import '../../core/constants.dart';
 import '../../core/database/app_database.dart';
 import '../../core/mqtt/mqtt_service.dart';
@@ -101,6 +102,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
 
     final mqttService = AppScaffold.of(context).mqttService;
+    final userRole = AuthService.instance.currentUser?.role ?? UserRoles.viewer;
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -162,6 +164,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   onRefresh: _loadData,
                   onDisableTabsChanged: (val) =>
                       setState(() => _disableTabs = val),
+                  userRole: userRole,
                 ),
                 // Log tab
                 _LogTab(
@@ -169,6 +172,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   logs: _logs,
                   mqttService: mqttService,
                   onRefresh: _refreshLogs,
+                  userRole: userRole,
                 ),
                 // Graph tab
                 _GraphTab(logs: _logs),
@@ -178,6 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   config: _config,
                   mqttService: mqttService,
                   onRefresh: _loadData,
+                  userRole: userRole,
                 ),
               ],
             ),
@@ -364,6 +369,7 @@ class _CalibrationTab extends StatefulWidget {
   final MqttService mqttService;
   final VoidCallback onRefresh;
   final ValueChanged<bool> onDisableTabsChanged;
+  final String userRole;
 
   const _CalibrationTab({
     required this.device,
@@ -372,6 +378,7 @@ class _CalibrationTab extends StatefulWidget {
     required this.mqttService,
     required this.onRefresh,
     required this.onDisableTabsChanged,
+    required this.userRole,
   });
 
   @override
@@ -733,6 +740,12 @@ class _CalibrationTabState extends State<_CalibrationTab> {
     // shouldDisable matches web: calibrateFor?.index !== 0 || calibrateFor?.started
     final shouldDisable = _calibrateIndex != 0 || _calibrateStarted;
     final btnDisable = _mode.isEmpty;
+    // Role-based access:
+    // Admin: full access
+    // Lab Tech: can print only, NO start/reset/edit
+    // Viewer: view only, nothing clickable
+    final canCal = UserRoles.canCalibrate(widget.userRole);
+    final isViewer = UserRoles.isViewOnly(widget.userRole);
 
     return SingleChildScrollView(
       child: Column(
@@ -751,7 +764,7 @@ class _CalibrationTabState extends State<_CalibrationTab> {
                 child: Text('Mode $_mode', style: theme.textTheme.bodyMedium),
               ),
               const SizedBox(width: 12),
-              // Probe selector (EC only)
+              // Probe selector (EC only) — admin only
               if (isEc)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -767,7 +780,7 @@ class _CalibrationTabState extends State<_CalibrationTab> {
                         .map(
                             (p) => DropdownMenuItem(value: p, child: Text(p)))
                         .toList(),
-                    onChanged: shouldDisable
+                    onChanged: (shouldDisable || !canCal)
                         ? null
                         : (val) {
                             if (val != null) setState(() => _probe = val);
@@ -775,31 +788,30 @@ class _CalibrationTabState extends State<_CalibrationTab> {
                   ),
                 ),
               const Spacer(),
-              // Action buttons — matching web's button logic exactly:
-              // Reset: disabled={!shouldDisable}
+              // Reset: admin only
               FilledButton(
-                onPressed: shouldDisable ? _handleResetButton : null,
+                onPressed: (shouldDisable && canCal) ? _handleResetButton : null,
                 style: FilledButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text('Reset'),
               ),
               const SizedBox(width: 8),
-              // Start: disabled={calibrateFor?.started || btnDisable}
+              // Start: admin only
               FilledButton(
                 onPressed:
-                    (_calibrateStarted || btnDisable) ? null : _handleStart,
+                    (canCal && !_calibrateStarted && !btnDisable) ? _handleStart : null,
                 child: const Text('Start'),
               ),
               const SizedBox(width: 8),
-              // Print: disabled={shouldDisable || btnDisable}
+              // Print: allowed for admin + lab tech (not viewer)
               FilledButton.tonal(
-                onPressed: (shouldDisable || btnDisable) ? null : () {},
+                onPressed: (shouldDisable || btnDisable || isViewer) ? null : () {},
                 child: const Text('Print'),
               ),
               const SizedBox(width: 8),
-              // Edit Table: disabled={shouldDisable || btnDisable}
+              // Edit Table: admin only
               FilledButton.tonal(
                 onPressed:
-                    (shouldDisable || btnDisable) ? null : _showEditTableDialog,
+                    (canCal && !shouldDisable && !btnDisable) ? _showEditTableDialog : null,
                 child: const Text('Edit Table'),
               ),
             ],
@@ -1223,12 +1235,14 @@ class _LogTab extends StatefulWidget {
   final List<Log> logs;
   final MqttService mqttService;
   final VoidCallback onRefresh;
+  final String userRole;
 
   const _LogTab({
     required this.device,
     required this.logs,
     required this.mqttService,
     required this.onRefresh,
+    required this.userRole,
   });
 
   @override
@@ -1430,6 +1444,7 @@ class _LogTabState extends State<_LogTab> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEc = widget.device.type == 'ec';
+    final canDoLog = UserRoles.canLog(widget.userRole);
     final hasInterval = (int.tryParse(_hrsController.text) ?? 0) > 0 ||
         (int.tryParse(_minsController.text) ?? 0) > 0 ||
         (int.tryParse(_secsController.text) ?? 0) > 0;
@@ -1448,7 +1463,7 @@ class _LogTabState extends State<_LogTab> {
               Expanded(
                 child: TextField(
                   controller: _productController,
-                  enabled: !_disabled,
+                  enabled: !_disabled && canDoLog,
                   decoration: const InputDecoration(
                     hintText: 'Product Name',
                     isDense: true,
@@ -1461,7 +1476,7 @@ class _LogTabState extends State<_LogTab> {
               Expanded(
                 child: TextField(
                   controller: _batchNoController,
-                  enabled: !_disabled,
+                  enabled: !_disabled && canDoLog,
                   decoration: const InputDecoration(
                     hintText: 'Batch No',
                     isDense: true,
@@ -1474,7 +1489,7 @@ class _LogTabState extends State<_LogTab> {
               Expanded(
                 child: TextField(
                   controller: _arNoController,
-                  enabled: !_disabled,
+                  enabled: !_disabled && canDoLog,
                   decoration: const InputDecoration(
                     hintText: 'AR No',
                     isDense: true,
@@ -1485,12 +1500,12 @@ class _LogTabState extends State<_LogTab> {
               ),
               const SizedBox(width: 8),
               FilledButton(
-                onPressed: _disabled ? null : _submitProductDetails,
+                onPressed: (_disabled || !canDoLog) ? null : _submitProductDetails,
                 child: const Text('Submit'),
               ),
               const SizedBox(width: 8),
               PopupMenuButton<String>(
-                enabled: !_disabled,
+                enabled: !_disabled && canDoLog,
                 onSelected: (val) {
                   // Export placeholder
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1502,13 +1517,13 @@ class _LogTabState extends State<_LogTab> {
                   const PopupMenuItem(value: 'Pdf', child: Text('Pdf')),
                 ],
                 child: FilledButton.tonal(
-                  onPressed: _disabled ? null : () {},
+                  onPressed: (_disabled || !canDoLog) ? null : () {},
                   child: const Text('Export'),
                 ),
               ),
               const SizedBox(width: 8),
               FilledButton(
-                onPressed: _disabled ? null : _clearProductDetails,
+                onPressed: (_disabled || !canDoLog) ? null : _clearProductDetails,
                 style: FilledButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text('Clear Details'),
               ),
@@ -1525,7 +1540,7 @@ class _LogTabState extends State<_LogTab> {
             children: [
               // Manual Log button
               FilledButton(
-                onPressed: _handleManualLog,
+                onPressed: canDoLog ? _handleManualLog : null,
                 child: const Text('Log'),
               ),
               const SizedBox(width: 16),
@@ -1534,6 +1549,7 @@ class _LogTabState extends State<_LogTab> {
               _LogModeSwitch(
                 label: 'Log on Stable',
                 isActive: _logMode == '1',
+                enabled: canDoLog,
                 onChanged: (val) => _handleModeSwitch(val, '1'),
               ),
               const SizedBox(width: 16),
@@ -1542,6 +1558,7 @@ class _LogTabState extends State<_LogTab> {
               _LogModeSwitch(
                 label: 'Log on Button',
                 isActive: _logMode == '2',
+                enabled: canDoLog,
                 onChanged: (val) => _handleModeSwitch(val, '2'),
               ),
               const SizedBox(width: 16),
@@ -1550,6 +1567,7 @@ class _LogTabState extends State<_LogTab> {
               _LogModeSwitch(
                 label: 'Log at Interval',
                 isActive: _logMode == '3',
+                enabled: canDoLog,
                 onChanged: (val) => _handleModeSwitch(val, '3'),
               ),
               const SizedBox(width: 12),
@@ -1559,7 +1577,7 @@ class _LogTabState extends State<_LogTab> {
                 width: 60,
                 child: TextField(
                   controller: _hrsController,
-                  enabled: _logMode == '3' && !_intervalStarted,
+                  enabled: _logMode == '3' && !_intervalStarted && canDoLog,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     hintText: 'h',
@@ -1574,7 +1592,7 @@ class _LogTabState extends State<_LogTab> {
                 width: 60,
                 child: TextField(
                   controller: _minsController,
-                  enabled: _logMode == '3' && !_intervalStarted,
+                  enabled: _logMode == '3' && !_intervalStarted && canDoLog,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     hintText: 'm',
@@ -1589,7 +1607,7 @@ class _LogTabState extends State<_LogTab> {
                 width: 60,
                 child: TextField(
                   controller: _secsController,
-                  enabled: _logMode == '3' && !_intervalStarted,
+                  enabled: _logMode == '3' && !_intervalStarted && canDoLog,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     hintText: 's',
@@ -1603,7 +1621,7 @@ class _LogTabState extends State<_LogTab> {
               // Start/Stop button
               IconButton.filled(
                 onPressed:
-                    (_logMode != '3' || !hasInterval) ? null : _startStopInterval,
+                    (_logMode != '3' || !hasInterval || !canDoLog) ? null : _startStopInterval,
                 icon: Icon(
                   _intervalStarted ? LucideIcons.square : LucideIcons.play,
                   size: 16,
@@ -1628,7 +1646,7 @@ class _LogTabState extends State<_LogTab> {
 
               // Clear Logs
               FilledButton(
-                onPressed: _logMode != '0' ? null : _clearLogs,
+                onPressed: (_logMode != '0' || !canDoLog) ? null : _clearLogs,
                 style: FilledButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text('Clear Logs'),
               ),
@@ -1680,11 +1698,13 @@ class _LogTabState extends State<_LogTab> {
 class _LogModeSwitch extends StatelessWidget {
   final String label;
   final bool isActive;
+  final bool enabled;
   final ValueChanged<bool> onChanged;
 
   const _LogModeSwitch({
     required this.label,
     required this.isActive,
+    this.enabled = true,
     required this.onChanged,
   });
 
@@ -1697,7 +1717,7 @@ class _LogModeSwitch extends StatelessWidget {
         const SizedBox(width: 4),
         Switch(
           value: isActive,
-          onChanged: onChanged,
+          onChanged: enabled ? onChanged : null,
         ),
       ],
     );
@@ -2026,12 +2046,14 @@ class _AlarmTab extends StatefulWidget {
   final DeviceConfig? config;
   final MqttService mqttService;
   final VoidCallback onRefresh;
+  final String userRole;
 
   const _AlarmTab({
     required this.device,
     required this.config,
     required this.mqttService,
     required this.onRefresh,
+    required this.userRole,
   });
 
   @override
@@ -2098,6 +2120,7 @@ class _AlarmTabState extends State<_AlarmTab> {
   @override
   Widget build(BuildContext context) {
     // Centered at 60% width (matching className="mx-auto mt-8 w-full lg:w-3/5")
+    final canDoAlarm = UserRoles.canAlarm(widget.userRole);
     return Center(
       child: FractionallySizedBox(
         widthFactor: 0.6,
@@ -2119,6 +2142,7 @@ class _AlarmTabState extends State<_AlarmTab> {
                     const SizedBox(height: 6),
                     TextField(
                       controller: _minController,
+                      enabled: canDoAlarm,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
@@ -2144,6 +2168,7 @@ class _AlarmTabState extends State<_AlarmTab> {
                     const SizedBox(height: 6),
                     TextField(
                       controller: _maxController,
+                      enabled: canDoAlarm,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
@@ -2158,12 +2183,12 @@ class _AlarmTabState extends State<_AlarmTab> {
               const SizedBox(width: 12),
               // Save + Reset buttons (matching web app's flex gap-5)
               FilledButton(
-                onPressed: _saveAlarm,
+                onPressed: canDoAlarm ? _saveAlarm : null,
                 child: const Text('Save'),
               ),
               const SizedBox(width: 8),
               FilledButton(
-                onPressed: _resetAlarm,
+                onPressed: canDoAlarm ? _resetAlarm : null,
                 style: FilledButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text('Reset'),
               ),
