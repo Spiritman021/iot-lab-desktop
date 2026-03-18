@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database/app_database.dart';
+import 'password_validator.dart';
 
 /// User roles — Admin / Lab Tech / Viewer
 class UserRoles {
@@ -101,7 +102,14 @@ class AuthService extends ChangeNotifier {
     required String password,
     String role = UserRoles.viewer,
     int sessionDuration = 30,
+    int passwordExpiryDays = 90,
   }) async {
+    // Validate password strength
+    final validationError = PasswordValidator.validate(password);
+    if (validationError != null) {
+      throw Exception(validationError);
+    }
+
     // Check if email already exists
     final existing = await _db.getUserByEmail(email);
     if (existing != null) {
@@ -109,13 +117,17 @@ class AuthService extends ChangeNotifier {
     }
 
     final hash = BCrypt.hashpw(password, BCrypt.gensalt());
-    await _db.insertUser(UsersCompanion.insert(
+    final userId = await _db.insertUser(UsersCompanion.insert(
       name: name,
       email: email,
       passwordHash: hash,
       role: Value(role),
       sessionDuration: Value(sessionDuration),
+      passwordExpiryDays: Value(passwordExpiryDays),
     ));
+
+    // Save initial password to history
+    await _db.addPasswordHistory(userId, hash);
 
     return 'User registered successfully';
   }
@@ -147,7 +159,68 @@ class AuthService extends ChangeNotifier {
     await prefs.setInt('userId', user.id);
 
     notifyListeners();
+
+    // Check password expiry (after successful login)
+    if (isPasswordExpired(user)) {
+      throw PasswordExpiredException(
+          'Your password has expired. Please change it now.');
+    }
+
     return user;
+  }
+
+  /// Check if a user's password has expired
+  bool isPasswordExpired(User user) {
+    if (user.passwordExpiryDays == 0) return false; // 0 = never expires
+    final expiresAt = user.passwordChangedAt
+        .add(Duration(days: user.passwordExpiryDays));
+    return DateTime.now().isAfter(expiresAt);
+  }
+
+  /// Days until password expires (for UI warning)
+  int daysUntilExpiry(User user) {
+    if (user.passwordExpiryDays == 0) return -1; // never
+    final expiresAt = user.passwordChangedAt
+        .add(Duration(days: user.passwordExpiryDays));
+    return expiresAt.difference(DateTime.now()).inDays;
+  }
+
+  /// Change password — validates strength, prevents reuse of last 5
+  Future<void> changePassword({
+    required int userId,
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    // Validate new password strength
+    final validationError = PasswordValidator.validate(newPassword);
+    if (validationError != null) {
+      throw Exception(validationError);
+    }
+
+    // Verify current password
+    final user = await _db.getUserById(userId);
+    if (user == null) throw Exception('User not found');
+    if (!BCrypt.checkpw(currentPassword, user.passwordHash)) {
+      throw Exception('Current password is incorrect');
+    }
+
+    // Check against last 5 passwords
+    final history = await _db.getPasswordHistory(userId);
+    final last5 = history.take(5);
+    for (final h in last5) {
+      if (BCrypt.checkpw(newPassword, h.passwordHash)) {
+        throw Exception(
+            'Cannot reuse any of your last 5 passwords. Choose a different password.');
+      }
+    }
+
+    // Update password
+    final newHash = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+    await _db.changeUserPassword(userId, newHash);
+
+    // Refresh current user
+    _currentUser = await _db.getUserById(userId);
+    notifyListeners();
   }
 
   /// Logout
@@ -166,4 +239,14 @@ class AuthService extends ChangeNotifier {
 
   // Keep backward compat for any remaining references
   Future<bool> superuserExists() => adminExists();
+}
+
+/// Special exception for password expiry — used to trigger
+/// the change-password dialog on login.
+class PasswordExpiredException implements Exception {
+  final String message;
+  PasswordExpiredException(this.message);
+
+  @override
+  String toString() => message;
 }

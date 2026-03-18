@@ -9,6 +9,10 @@ class Users extends Table {
   TextColumn get role => text().withDefault(const Constant('user'))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   IntColumn get sessionDuration => integer().withDefault(const Constant(30))(); // minutes
+  DateTimeColumn get passwordChangedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+  IntColumn get passwordExpiryDays =>
+      integer().withDefault(const Constant(90))(); // 0 = never expires
   DateTimeColumn get createdAt =>
       dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt =>
@@ -136,6 +140,15 @@ class ReportFiles extends Table {
   IntColumn get fileSize => integer().withDefault(const Constant(0))();
   TextColumn get generatedBy => text()();
   TextColumn get format => text().withDefault(const Constant('pdf'))(); // 'pdf' or 'csv'
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
+}
+
+/// Password history — stores old hashes to prevent reuse
+class PasswordHistories extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get userId => integer()();
+  TextColumn get passwordHash => text()();
   DateTimeColumn get createdAt =>
       dateTime().withDefault(currentDateAndTime)();
 }

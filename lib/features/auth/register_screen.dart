@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../../core/auth/password_validator.dart';
 
 /// Register screen — ONLY used for first-time Admin setup.
 /// If admin already exists, redirects to /login.
@@ -183,16 +184,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         obscureText: _obscurePassword,
+                        onChanged: (_) => setState(() {}),
                         validator: (val) {
                           if (val == null || val.isEmpty) {
                             return 'Password is required';
                           }
-                          if (val.length < 6) {
-                            return 'Password must be at least 6 characters';
-                          }
-                          return null;
+                          return PasswordValidator.validate(val);
                         },
                       ),
+                      const SizedBox(height: 8),
+                      // Password requirements
+                      ...PasswordValidator.getRequirements(
+                              _passwordController.text)
+                          .map((req) => Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 1),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      req.met
+                                          ? LucideIcons.checkCircle2
+                                          : LucideIcons.circle,
+                                      size: 14,
+                                      color: req.met
+                                          ? Colors.green
+                                          : Colors.grey,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      req.label,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: req.met
+                                            ? Colors.green
+                                            : Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )),
                       const SizedBox(height: 8),
                       // Info chip — role is fixed to Admin
                       Container(

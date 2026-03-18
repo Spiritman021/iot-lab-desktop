@@ -711,6 +711,7 @@ class _CreateDeviceDialogState extends State<_CreateDeviceDialog> {
           const SizedBox(height: 16),
           // Calibration Mode — shown for both PH and EC
           DropdownButtonFormField<String>(
+            key: ValueKey('mode_$_selectedType'),
             initialValue: _selectedMode,
             decoration: const InputDecoration(labelText: 'Calibration Mode'),
             items: (_selectedType == 'ph' ? ['3', '5'] : ['1', '2', '3'])

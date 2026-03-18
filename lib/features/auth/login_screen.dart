@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../core/auth/auth_service.dart';
+import 'change_password_dialog.dart';
 
 /// Login screen — if no admin exists, redirects to /register for first-time setup.
 /// After admin exists, the register link is hidden — users are created inside the app.
@@ -45,6 +46,14 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
       if (mounted) context.go('/');
+    } on PasswordExpiredException {
+      // Password expired — force change dialog
+      if (mounted) {
+        final changed = await ChangePasswordDialog.show(context, isForced: true);
+        if (changed == true && mounted) {
+          context.go('/');
+        }
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

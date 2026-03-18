@@ -96,6 +96,30 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     requiredDuringInsert: false,
     defaultValue: const Constant(30),
   );
+  static const VerificationMeta _passwordChangedAtMeta = const VerificationMeta(
+    'passwordChangedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> passwordChangedAt =
+      GeneratedColumn<DateTime>(
+        'password_changed_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+        defaultValue: currentDateAndTime,
+      );
+  static const VerificationMeta _passwordExpiryDaysMeta =
+      const VerificationMeta('passwordExpiryDays');
+  @override
+  late final GeneratedColumn<int> passwordExpiryDays = GeneratedColumn<int>(
+    'password_expiry_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(90),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -129,6 +153,8 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     role,
     isActive,
     sessionDuration,
+    passwordChangedAt,
+    passwordExpiryDays,
     createdAt,
     updatedAt,
   ];
@@ -195,6 +221,24 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         ),
       );
     }
+    if (data.containsKey('password_changed_at')) {
+      context.handle(
+        _passwordChangedAtMeta,
+        passwordChangedAt.isAcceptableOrUnknown(
+          data['password_changed_at']!,
+          _passwordChangedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('password_expiry_days')) {
+      context.handle(
+        _passwordExpiryDaysMeta,
+        passwordExpiryDays.isAcceptableOrUnknown(
+          data['password_expiry_days']!,
+          _passwordExpiryDaysMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -244,6 +288,14 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         DriftSqlType.int,
         data['${effectivePrefix}session_duration'],
       )!,
+      passwordChangedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}password_changed_at'],
+      )!,
+      passwordExpiryDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}password_expiry_days'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -269,6 +321,8 @@ class User extends DataClass implements Insertable<User> {
   final String role;
   final bool isActive;
   final int sessionDuration;
+  final DateTime passwordChangedAt;
+  final int passwordExpiryDays;
   final DateTime createdAt;
   final DateTime updatedAt;
   const User({
@@ -279,6 +333,8 @@ class User extends DataClass implements Insertable<User> {
     required this.role,
     required this.isActive,
     required this.sessionDuration,
+    required this.passwordChangedAt,
+    required this.passwordExpiryDays,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -292,6 +348,8 @@ class User extends DataClass implements Insertable<User> {
     map['role'] = Variable<String>(role);
     map['is_active'] = Variable<bool>(isActive);
     map['session_duration'] = Variable<int>(sessionDuration);
+    map['password_changed_at'] = Variable<DateTime>(passwordChangedAt);
+    map['password_expiry_days'] = Variable<int>(passwordExpiryDays);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -306,6 +364,8 @@ class User extends DataClass implements Insertable<User> {
       role: Value(role),
       isActive: Value(isActive),
       sessionDuration: Value(sessionDuration),
+      passwordChangedAt: Value(passwordChangedAt),
+      passwordExpiryDays: Value(passwordExpiryDays),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -324,6 +384,10 @@ class User extends DataClass implements Insertable<User> {
       role: serializer.fromJson<String>(json['role']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       sessionDuration: serializer.fromJson<int>(json['sessionDuration']),
+      passwordChangedAt: serializer.fromJson<DateTime>(
+        json['passwordChangedAt'],
+      ),
+      passwordExpiryDays: serializer.fromJson<int>(json['passwordExpiryDays']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -339,6 +403,8 @@ class User extends DataClass implements Insertable<User> {
       'role': serializer.toJson<String>(role),
       'isActive': serializer.toJson<bool>(isActive),
       'sessionDuration': serializer.toJson<int>(sessionDuration),
+      'passwordChangedAt': serializer.toJson<DateTime>(passwordChangedAt),
+      'passwordExpiryDays': serializer.toJson<int>(passwordExpiryDays),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -352,6 +418,8 @@ class User extends DataClass implements Insertable<User> {
     String? role,
     bool? isActive,
     int? sessionDuration,
+    DateTime? passwordChangedAt,
+    int? passwordExpiryDays,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => User(
@@ -362,6 +430,8 @@ class User extends DataClass implements Insertable<User> {
     role: role ?? this.role,
     isActive: isActive ?? this.isActive,
     sessionDuration: sessionDuration ?? this.sessionDuration,
+    passwordChangedAt: passwordChangedAt ?? this.passwordChangedAt,
+    passwordExpiryDays: passwordExpiryDays ?? this.passwordExpiryDays,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -378,6 +448,12 @@ class User extends DataClass implements Insertable<User> {
       sessionDuration: data.sessionDuration.present
           ? data.sessionDuration.value
           : this.sessionDuration,
+      passwordChangedAt: data.passwordChangedAt.present
+          ? data.passwordChangedAt.value
+          : this.passwordChangedAt,
+      passwordExpiryDays: data.passwordExpiryDays.present
+          ? data.passwordExpiryDays.value
+          : this.passwordExpiryDays,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -393,6 +469,8 @@ class User extends DataClass implements Insertable<User> {
           ..write('role: $role, ')
           ..write('isActive: $isActive, ')
           ..write('sessionDuration: $sessionDuration, ')
+          ..write('passwordChangedAt: $passwordChangedAt, ')
+          ..write('passwordExpiryDays: $passwordExpiryDays, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -408,6 +486,8 @@ class User extends DataClass implements Insertable<User> {
     role,
     isActive,
     sessionDuration,
+    passwordChangedAt,
+    passwordExpiryDays,
     createdAt,
     updatedAt,
   );
@@ -422,6 +502,8 @@ class User extends DataClass implements Insertable<User> {
           other.role == this.role &&
           other.isActive == this.isActive &&
           other.sessionDuration == this.sessionDuration &&
+          other.passwordChangedAt == this.passwordChangedAt &&
+          other.passwordExpiryDays == this.passwordExpiryDays &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -434,6 +516,8 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<String> role;
   final Value<bool> isActive;
   final Value<int> sessionDuration;
+  final Value<DateTime> passwordChangedAt;
+  final Value<int> passwordExpiryDays;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const UsersCompanion({
@@ -444,6 +528,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.role = const Value.absent(),
     this.isActive = const Value.absent(),
     this.sessionDuration = const Value.absent(),
+    this.passwordChangedAt = const Value.absent(),
+    this.passwordExpiryDays = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -455,6 +541,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.role = const Value.absent(),
     this.isActive = const Value.absent(),
     this.sessionDuration = const Value.absent(),
+    this.passwordChangedAt = const Value.absent(),
+    this.passwordExpiryDays = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : name = Value(name),
@@ -468,6 +556,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     Expression<String>? role,
     Expression<bool>? isActive,
     Expression<int>? sessionDuration,
+    Expression<DateTime>? passwordChangedAt,
+    Expression<int>? passwordExpiryDays,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -479,6 +569,9 @@ class UsersCompanion extends UpdateCompanion<User> {
       if (role != null) 'role': role,
       if (isActive != null) 'is_active': isActive,
       if (sessionDuration != null) 'session_duration': sessionDuration,
+      if (passwordChangedAt != null) 'password_changed_at': passwordChangedAt,
+      if (passwordExpiryDays != null)
+        'password_expiry_days': passwordExpiryDays,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -492,6 +585,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     Value<String>? role,
     Value<bool>? isActive,
     Value<int>? sessionDuration,
+    Value<DateTime>? passwordChangedAt,
+    Value<int>? passwordExpiryDays,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -503,6 +598,8 @@ class UsersCompanion extends UpdateCompanion<User> {
       role: role ?? this.role,
       isActive: isActive ?? this.isActive,
       sessionDuration: sessionDuration ?? this.sessionDuration,
+      passwordChangedAt: passwordChangedAt ?? this.passwordChangedAt,
+      passwordExpiryDays: passwordExpiryDays ?? this.passwordExpiryDays,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -532,6 +629,12 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (sessionDuration.present) {
       map['session_duration'] = Variable<int>(sessionDuration.value);
     }
+    if (passwordChangedAt.present) {
+      map['password_changed_at'] = Variable<DateTime>(passwordChangedAt.value);
+    }
+    if (passwordExpiryDays.present) {
+      map['password_expiry_days'] = Variable<int>(passwordExpiryDays.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -551,6 +654,8 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('role: $role, ')
           ..write('isActive: $isActive, ')
           ..write('sessionDuration: $sessionDuration, ')
+          ..write('passwordChangedAt: $passwordChangedAt, ')
+          ..write('passwordExpiryDays: $passwordExpiryDays, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -5181,6 +5286,307 @@ class ReportFilesCompanion extends UpdateCompanion<ReportFile> {
   }
 }
 
+class $PasswordHistoriesTable extends PasswordHistories
+    with TableInfo<$PasswordHistoriesTable, PasswordHistory> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PasswordHistoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<int> userId = GeneratedColumn<int>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _passwordHashMeta = const VerificationMeta(
+    'passwordHash',
+  );
+  @override
+  late final GeneratedColumn<String> passwordHash = GeneratedColumn<String>(
+    'password_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, userId, passwordHash, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'password_histories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PasswordHistory> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('password_hash')) {
+      context.handle(
+        _passwordHashMeta,
+        passwordHash.isAcceptableOrUnknown(
+          data['password_hash']!,
+          _passwordHashMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_passwordHashMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PasswordHistory map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PasswordHistory(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}user_id'],
+      )!,
+      passwordHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}password_hash'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PasswordHistoriesTable createAlias(String alias) {
+    return $PasswordHistoriesTable(attachedDatabase, alias);
+  }
+}
+
+class PasswordHistory extends DataClass implements Insertable<PasswordHistory> {
+  final int id;
+  final int userId;
+  final String passwordHash;
+  final DateTime createdAt;
+  const PasswordHistory({
+    required this.id,
+    required this.userId,
+    required this.passwordHash,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['user_id'] = Variable<int>(userId);
+    map['password_hash'] = Variable<String>(passwordHash);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  PasswordHistoriesCompanion toCompanion(bool nullToAbsent) {
+    return PasswordHistoriesCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      passwordHash: Value(passwordHash),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory PasswordHistory.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PasswordHistory(
+      id: serializer.fromJson<int>(json['id']),
+      userId: serializer.fromJson<int>(json['userId']),
+      passwordHash: serializer.fromJson<String>(json['passwordHash']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'userId': serializer.toJson<int>(userId),
+      'passwordHash': serializer.toJson<String>(passwordHash),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  PasswordHistory copyWith({
+    int? id,
+    int? userId,
+    String? passwordHash,
+    DateTime? createdAt,
+  }) => PasswordHistory(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    passwordHash: passwordHash ?? this.passwordHash,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  PasswordHistory copyWithCompanion(PasswordHistoriesCompanion data) {
+    return PasswordHistory(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      passwordHash: data.passwordHash.present
+          ? data.passwordHash.value
+          : this.passwordHash,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PasswordHistory(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('passwordHash: $passwordHash, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, userId, passwordHash, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PasswordHistory &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.passwordHash == this.passwordHash &&
+          other.createdAt == this.createdAt);
+}
+
+class PasswordHistoriesCompanion extends UpdateCompanion<PasswordHistory> {
+  final Value<int> id;
+  final Value<int> userId;
+  final Value<String> passwordHash;
+  final Value<DateTime> createdAt;
+  const PasswordHistoriesCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.passwordHash = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  PasswordHistoriesCompanion.insert({
+    this.id = const Value.absent(),
+    required int userId,
+    required String passwordHash,
+    this.createdAt = const Value.absent(),
+  }) : userId = Value(userId),
+       passwordHash = Value(passwordHash);
+  static Insertable<PasswordHistory> custom({
+    Expression<int>? id,
+    Expression<int>? userId,
+    Expression<String>? passwordHash,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (passwordHash != null) 'password_hash': passwordHash,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  PasswordHistoriesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? userId,
+    Value<String>? passwordHash,
+    Value<DateTime>? createdAt,
+  }) {
+    return PasswordHistoriesCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      passwordHash: passwordHash ?? this.passwordHash,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<int>(userId.value);
+    }
+    if (passwordHash.present) {
+      map['password_hash'] = Variable<String>(passwordHash.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PasswordHistoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('passwordHash: $passwordHash, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5194,6 +5600,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $HeaderFootersTable headerFooters = $HeaderFootersTable(this);
   late final $CompanyDetailsTable companyDetails = $CompanyDetailsTable(this);
   late final $ReportFilesTable reportFiles = $ReportFilesTable(this);
+  late final $PasswordHistoriesTable passwordHistories =
+      $PasswordHistoriesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5207,6 +5615,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     headerFooters,
     companyDetails,
     reportFiles,
+    passwordHistories,
   ];
 }
 
@@ -5219,6 +5628,8 @@ typedef $$UsersTableCreateCompanionBuilder =
       Value<String> role,
       Value<bool> isActive,
       Value<int> sessionDuration,
+      Value<DateTime> passwordChangedAt,
+      Value<int> passwordExpiryDays,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -5231,6 +5642,8 @@ typedef $$UsersTableUpdateCompanionBuilder =
       Value<String> role,
       Value<bool> isActive,
       Value<int> sessionDuration,
+      Value<DateTime> passwordChangedAt,
+      Value<int> passwordExpiryDays,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -5275,6 +5688,16 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
 
   ColumnFilters<int> get sessionDuration => $composableBuilder(
     column: $table.sessionDuration,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get passwordChangedAt => $composableBuilder(
+    column: $table.passwordChangedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get passwordExpiryDays => $composableBuilder(
+    column: $table.passwordExpiryDays,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5333,6 +5756,16 @@ class $$UsersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get passwordChangedAt => $composableBuilder(
+    column: $table.passwordChangedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get passwordExpiryDays => $composableBuilder(
+    column: $table.passwordExpiryDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5378,6 +5811,16 @@ class $$UsersTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<DateTime> get passwordChangedAt => $composableBuilder(
+    column: $table.passwordChangedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get passwordExpiryDays => $composableBuilder(
+    column: $table.passwordExpiryDays,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -5420,6 +5863,8 @@ class $$UsersTableTableManager
                 Value<String> role = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<int> sessionDuration = const Value.absent(),
+                Value<DateTime> passwordChangedAt = const Value.absent(),
+                Value<int> passwordExpiryDays = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => UsersCompanion(
@@ -5430,6 +5875,8 @@ class $$UsersTableTableManager
                 role: role,
                 isActive: isActive,
                 sessionDuration: sessionDuration,
+                passwordChangedAt: passwordChangedAt,
+                passwordExpiryDays: passwordExpiryDays,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -5442,6 +5889,8 @@ class $$UsersTableTableManager
                 Value<String> role = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<int> sessionDuration = const Value.absent(),
+                Value<DateTime> passwordChangedAt = const Value.absent(),
+                Value<int> passwordExpiryDays = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => UsersCompanion.insert(
@@ -5452,6 +5901,8 @@ class $$UsersTableTableManager
                 role: role,
                 isActive: isActive,
                 sessionDuration: sessionDuration,
+                passwordChangedAt: passwordChangedAt,
+                passwordExpiryDays: passwordExpiryDays,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -8352,6 +8803,192 @@ typedef $$ReportFilesTableProcessedTableManager =
       ReportFile,
       PrefetchHooks Function()
     >;
+typedef $$PasswordHistoriesTableCreateCompanionBuilder =
+    PasswordHistoriesCompanion Function({
+      Value<int> id,
+      required int userId,
+      required String passwordHash,
+      Value<DateTime> createdAt,
+    });
+typedef $$PasswordHistoriesTableUpdateCompanionBuilder =
+    PasswordHistoriesCompanion Function({
+      Value<int> id,
+      Value<int> userId,
+      Value<String> passwordHash,
+      Value<DateTime> createdAt,
+    });
+
+class $$PasswordHistoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $PasswordHistoriesTable> {
+  $$PasswordHistoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get passwordHash => $composableBuilder(
+    column: $table.passwordHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PasswordHistoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $PasswordHistoriesTable> {
+  $$PasswordHistoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get passwordHash => $composableBuilder(
+    column: $table.passwordHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PasswordHistoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PasswordHistoriesTable> {
+  $$PasswordHistoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get passwordHash => $composableBuilder(
+    column: $table.passwordHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$PasswordHistoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PasswordHistoriesTable,
+          PasswordHistory,
+          $$PasswordHistoriesTableFilterComposer,
+          $$PasswordHistoriesTableOrderingComposer,
+          $$PasswordHistoriesTableAnnotationComposer,
+          $$PasswordHistoriesTableCreateCompanionBuilder,
+          $$PasswordHistoriesTableUpdateCompanionBuilder,
+          (
+            PasswordHistory,
+            BaseReferences<
+              _$AppDatabase,
+              $PasswordHistoriesTable,
+              PasswordHistory
+            >,
+          ),
+          PasswordHistory,
+          PrefetchHooks Function()
+        > {
+  $$PasswordHistoriesTableTableManager(
+    _$AppDatabase db,
+    $PasswordHistoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PasswordHistoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PasswordHistoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PasswordHistoriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> userId = const Value.absent(),
+                Value<String> passwordHash = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => PasswordHistoriesCompanion(
+                id: id,
+                userId: userId,
+                passwordHash: passwordHash,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int userId,
+                required String passwordHash,
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => PasswordHistoriesCompanion.insert(
+                id: id,
+                userId: userId,
+                passwordHash: passwordHash,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PasswordHistoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PasswordHistoriesTable,
+      PasswordHistory,
+      $$PasswordHistoriesTableFilterComposer,
+      $$PasswordHistoriesTableOrderingComposer,
+      $$PasswordHistoriesTableAnnotationComposer,
+      $$PasswordHistoriesTableCreateCompanionBuilder,
+      $$PasswordHistoriesTableUpdateCompanionBuilder,
+      (
+        PasswordHistory,
+        BaseReferences<_$AppDatabase, $PasswordHistoriesTable, PasswordHistory>,
+      ),
+      PasswordHistory,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8371,4 +9008,6 @@ class $AppDatabaseManager {
       $$CompanyDetailsTableTableManager(_db, _db.companyDetails);
   $$ReportFilesTableTableManager get reportFiles =>
       $$ReportFilesTableTableManager(_db, _db.reportFiles);
+  $$PasswordHistoriesTableTableManager get passwordHistories =>
+      $$PasswordHistoriesTableTableManager(_db, _db.passwordHistories);
 }

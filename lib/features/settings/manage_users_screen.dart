@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../../core/auth/password_validator.dart';
 import '../../core/constants.dart';
 import '../../core/database/app_database.dart';
 
@@ -377,10 +378,12 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
   final _passwordController = TextEditingController();
   String _selectedRole = UserRoles.labtech;
   int _selectedDuration = 30;
+  int _selectedExpiryDays = 90;
   bool _loading = false;
   bool _obscurePassword = true;
 
   static const List<int> _durationOptions = [1, 2, 5, 10, 15, 20, 30, 45, 60];
+  static const List<int> _expiryOptions = [0, 30, 60, 90, 120, 180, 365];
 
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
@@ -394,6 +397,7 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
         password: _passwordController.text,
         role: _selectedRole,
         sessionDuration: _selectedDuration,
+        passwordExpiryDays: _selectedExpiryDays,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -460,10 +464,35 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
                       setState(() => _obscurePassword = !_obscurePassword),
                 ),
               ),
-              validator: (v) => v == null || v.length < 6
-                  ? 'Min 6 characters'
-                  : null,
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Required';
+                return PasswordValidator.validate(v);
+              },
+              onChanged: (_) => setState(() {}),
             ),
+            const SizedBox(height: 4),
+            // Password requirements
+            ...PasswordValidator.getRequirements(_passwordController.text)
+                .map((req) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 1),
+                      child: Row(
+                        children: [
+                          Icon(
+                            req.met
+                                ? LucideIcons.checkCircle2
+                                : LucideIcons.circle,
+                            size: 12,
+                            color: req.met ? Colors.green : Colors.grey,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(req.label,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: req.met ? Colors.green : Colors.grey,
+                              )),
+                        ],
+                      ),
+                    )),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _selectedRole,
@@ -490,6 +519,20 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
                   .toList(),
               onChanged: (v) {
                 if (v != null) setState(() => _selectedDuration = v);
+              },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int>(
+              initialValue: _selectedExpiryDays,
+              decoration: const InputDecoration(labelText: 'Password Expiry'),
+              items: _expiryOptions
+                  .map((d) => DropdownMenuItem(
+                        value: d,
+                        child: Text(d == 0 ? 'Never' : '$d days'),
+                      ))
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) setState(() => _selectedExpiryDays = v);
               },
             ),
           ],
@@ -532,9 +575,11 @@ class _EditUserDialogState extends State<_EditUserDialog> {
   late final TextEditingController _emailController;
   late String _selectedRole;
   late int _selectedDuration;
+  late int _selectedExpiryDays;
   bool _loading = false;
 
   static const List<int> _durationOptions = [1, 2, 5, 10, 15, 20, 30, 45, 60];
+  static const List<int> _expiryOptions = [0, 30, 60, 90, 120, 180, 365];
 
   @override
   void initState() {
@@ -543,6 +588,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
     _emailController = TextEditingController(text: widget.user.email);
     _selectedRole = widget.user.role;
     _selectedDuration = widget.user.sessionDuration;
+    _selectedExpiryDays = widget.user.passwordExpiryDays;
   }
 
   Future<void> _handleSave() async {
@@ -555,6 +601,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
           email: Value(_emailController.text.trim()),
           role: Value(_selectedRole),
           sessionDuration: Value(_selectedDuration),
+          passwordExpiryDays: Value(_selectedExpiryDays),
           updatedAt: Value(DateTime.now()),
         ),
       );
@@ -627,6 +674,20 @@ class _EditUserDialogState extends State<_EditUserDialog> {
                 .toList(),
             onChanged: (v) {
               if (v != null) setState(() => _selectedDuration = v);
+            },
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int>(
+            initialValue: _selectedExpiryDays,
+            decoration: const InputDecoration(labelText: 'Password Expiry'),
+            items: _expiryOptions
+                .map((d) => DropdownMenuItem(
+                      value: d,
+                      child: Text(d == 0 ? 'Never' : '$d days'),
+                    ))
+                .toList(),
+            onChanged: (v) {
+              if (v != null) setState(() => _selectedExpiryDays = v);
             },
           ),
         ],

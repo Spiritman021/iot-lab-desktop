@@ -18,6 +18,7 @@ part 'app_database.g.dart';
   HeaderFooters,
   CompanyDetails,
   ReportFiles,
+  PasswordHistories,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase._() : super(_openConnection());
@@ -30,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -74,6 +75,22 @@ class AppDatabase extends _$AppDatabase {
                 file_size INTEGER NOT NULL DEFAULT 0,
                 generated_by TEXT NOT NULL,
                 format TEXT NOT NULL DEFAULT 'pdf',
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+              )
+            ''');
+          }
+          if (from < 7) {
+            // Add password policy columns to users
+            await customStatement(
+                "ALTER TABLE users ADD COLUMN password_changed_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))");
+            await customStatement(
+                "ALTER TABLE users ADD COLUMN password_expiry_days INTEGER NOT NULL DEFAULT 90");
+            // Create password history table
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS password_histories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                password_hash TEXT NOT NULL,
                 created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
               )
             ''');
@@ -323,6 +340,32 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteReportFile(int id) {
     return (delete(reportFiles)..where((t) => t.id.equals(id))).go();
+  }
+
+  // ── Password History ──
+
+  Future<List<PasswordHistory>> getPasswordHistory(int userId) {
+    return (select(passwordHistories)
+          ..where((t) => t.userId.equals(userId))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .get();
+  }
+
+  Future<void> addPasswordHistory(int userId, String hash) {
+    return into(passwordHistories).insert(PasswordHistoriesCompanion(
+      userId: Value(userId),
+      passwordHash: Value(hash),
+    ));
+  }
+
+  Future<void> changeUserPassword(int userId, String newHash) async {
+    await (update(users)..where((t) => t.id.equals(userId))).write(
+      UsersCompanion(
+        passwordHash: Value(newHash),
+        passwordChangedAt: Value(DateTime.now()),
+      ),
+    );
+    await addPasswordHistory(userId, newHash);
   }
 }
 
