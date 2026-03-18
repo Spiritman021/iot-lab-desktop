@@ -78,7 +78,7 @@ class AppScaffoldState extends State<AppScaffold> {
 
   @override
   void dispose() {
-    _mqttService.dispose();
+    // Do NOT dispose _mqttService — it's a singleton shared across the app
     super.dispose();
   }
 
