@@ -100,6 +100,7 @@ class AuthService extends ChangeNotifier {
     required String email,
     required String password,
     String role = UserRoles.viewer,
+    int sessionDuration = 30,
   }) async {
     // Check if email already exists
     final existing = await _db.getUserByEmail(email);
@@ -113,6 +114,7 @@ class AuthService extends ChangeNotifier {
       email: email,
       passwordHash: hash,
       role: Value(role),
+      sessionDuration: Value(sessionDuration),
     ));
 
     return 'User registered successfully';
@@ -131,6 +133,11 @@ class AuthService extends ChangeNotifier {
     final isCorrect = BCrypt.checkpw(password, user.passwordHash);
     if (!isCorrect) {
       throw Exception('Invalid email or password');
+    }
+
+    // Block inactive users
+    if (!user.isActive) {
+      throw Exception('Your account has been deactivated. Contact an admin.');
     }
 
     _currentUser = user;

@@ -108,6 +108,63 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       }
     }
   }
+  Future<void> _toggleUserStatus(User user) async {
+    final currentUser = AuthService.instance.currentUser;
+    if (currentUser == null) return;
+
+    // Prevent self-deactivation
+    if (user.id == currentUser.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You cannot deactivate your own account'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final newStatus = !user.isActive;
+    final action = newStatus ? 'activate' : 'deactivate';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${action[0].toUpperCase()}${action.substring(1)} User'),
+        content: Text(
+            'Are you sure you want to $action "${user.name}"?${!newStatus ? '\nThey will no longer be able to log in.' : ''}'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: newStatus ? Colors.green : Colors.orange,
+              ),
+              child: Text(action[0].toUpperCase() + action.substring(1))),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _db.updateUser(
+        user.id,
+        UsersCompanion(
+          isActive: Value(newStatus),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+      _loadUsers();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('User ${newStatus ? 'activated' : 'deactivated'}'),
+            backgroundColor: newStatus ? Colors.green : Colors.orange,
+          ),
+        );
+      }
+    }
+  }
 
   void _editUser(User user) {
     showDialog(
@@ -159,6 +216,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                                 DataColumn(label: Text('Name')),
                                 DataColumn(label: Text('Email')),
                                 DataColumn(label: Text('Role')),
+                                DataColumn(label: Text('Status')),
                                 DataColumn(label: Text('Actions')),
                               ],
                               rows: _users.asMap().entries.map((entry) {
@@ -172,6 +230,25 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                                   DataCell(Text(
                                       UserRoles.displayName(user.role))),
                                   DataCell(
+                                    Chip(
+                                      label: Text(
+                                        user.isActive ? 'Active' : 'Inactive',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: user.isActive
+                                              ? Colors.green.shade700
+                                              : Colors.red.shade700,
+                                        ),
+                                      ),
+                                      backgroundColor: user.isActive
+                                          ? Colors.green.withValues(alpha: 0.1)
+                                          : Colors.red.withValues(alpha: 0.1),
+                                      side: BorderSide.none,
+                                      padding: EdgeInsets.zero,
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                  ),
+                                  DataCell(
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
@@ -183,6 +260,21 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                                                   .primary),
                                           tooltip: 'Edit',
                                           onPressed: () => _editUser(user),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(
+                                              user.isActive
+                                                  ? LucideIcons.userX
+                                                  : LucideIcons.userCheck,
+                                              size: 16,
+                                              color: user.isActive
+                                                  ? Colors.orange.shade600
+                                                  : Colors.green.shade600),
+                                          tooltip: user.isActive
+                                              ? 'Deactivate'
+                                              : 'Activate',
+                                          onPressed: () =>
+                                              _toggleUserStatus(user),
                                         ),
                                         IconButton(
                                           icon: Icon(LucideIcons.trash2,
@@ -284,8 +376,11 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String _selectedRole = UserRoles.labtech;
+  int _selectedDuration = 30;
   bool _loading = false;
   bool _obscurePassword = true;
+
+  static const List<int> _durationOptions = [1, 2, 5, 10, 15, 20, 30, 45, 60];
 
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
@@ -298,6 +393,7 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         role: _selectedRole,
+        sessionDuration: _selectedDuration,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -382,6 +478,20 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
                 if (v != null) setState(() => _selectedRole = v);
               },
             ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int>(
+              initialValue: _selectedDuration,
+              decoration: const InputDecoration(labelText: 'Session Timeout'),
+              items: _durationOptions
+                  .map((d) => DropdownMenuItem(
+                        value: d,
+                        child: Text('$d min${d > 1 ? 's' : ''}'),
+                      ))
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) setState(() => _selectedDuration = v);
+              },
+            ),
           ],
         ),
       ),
@@ -421,7 +531,10 @@ class _EditUserDialogState extends State<_EditUserDialog> {
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
   late String _selectedRole;
+  late int _selectedDuration;
   bool _loading = false;
+
+  static const List<int> _durationOptions = [1, 2, 5, 10, 15, 20, 30, 45, 60];
 
   @override
   void initState() {
@@ -429,6 +542,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
     _nameController = TextEditingController(text: widget.user.name);
     _emailController = TextEditingController(text: widget.user.email);
     _selectedRole = widget.user.role;
+    _selectedDuration = widget.user.sessionDuration;
   }
 
   Future<void> _handleSave() async {
@@ -440,6 +554,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
           name: Value(_nameController.text.trim()),
           email: Value(_emailController.text.trim()),
           role: Value(_selectedRole),
+          sessionDuration: Value(_selectedDuration),
           updatedAt: Value(DateTime.now()),
         ),
       );
@@ -498,6 +613,20 @@ class _EditUserDialogState extends State<_EditUserDialog> {
                 .toList(),
             onChanged: (v) {
               if (v != null) setState(() => _selectedRole = v);
+            },
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int>(
+            initialValue: _selectedDuration,
+            decoration: const InputDecoration(labelText: 'Session Timeout'),
+            items: _durationOptions
+                .map((d) => DropdownMenuItem(
+                      value: d,
+                      child: Text('$d min${d > 1 ? 's' : ''}'),
+                    ))
+                .toList(),
+            onChanged: (v) {
+              if (v != null) setState(() => _selectedDuration = v);
             },
           ),
         ],

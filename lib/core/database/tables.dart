@@ -7,6 +7,8 @@ class Users extends Table {
   TextColumn get email => text().withLength(min: 1, max: 200).unique()();
   TextColumn get passwordHash => text()();
   TextColumn get role => text().withDefault(const Constant('user'))();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  IntColumn get sessionDuration => integer().withDefault(const Constant(30))(); // minutes
   DateTimeColumn get createdAt =>
       dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt =>

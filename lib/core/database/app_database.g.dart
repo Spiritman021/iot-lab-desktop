@@ -69,6 +69,33 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     requiredDuringInsert: false,
     defaultValue: const Constant('user'),
   );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _sessionDurationMeta = const VerificationMeta(
+    'sessionDuration',
+  );
+  @override
+  late final GeneratedColumn<int> sessionDuration = GeneratedColumn<int>(
+    'session_duration',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(30),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -100,6 +127,8 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     email,
     passwordHash,
     role,
+    isActive,
+    sessionDuration,
     createdAt,
     updatedAt,
   ];
@@ -151,6 +180,21 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         role.isAcceptableOrUnknown(data['role']!, _roleMeta),
       );
     }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('session_duration')) {
+      context.handle(
+        _sessionDurationMeta,
+        sessionDuration.isAcceptableOrUnknown(
+          data['session_duration']!,
+          _sessionDurationMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -192,6 +236,14 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         DriftSqlType.string,
         data['${effectivePrefix}role'],
       )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+      sessionDuration: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}session_duration'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -215,6 +267,8 @@ class User extends DataClass implements Insertable<User> {
   final String email;
   final String passwordHash;
   final String role;
+  final bool isActive;
+  final int sessionDuration;
   final DateTime createdAt;
   final DateTime updatedAt;
   const User({
@@ -223,6 +277,8 @@ class User extends DataClass implements Insertable<User> {
     required this.email,
     required this.passwordHash,
     required this.role,
+    required this.isActive,
+    required this.sessionDuration,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -234,6 +290,8 @@ class User extends DataClass implements Insertable<User> {
     map['email'] = Variable<String>(email);
     map['password_hash'] = Variable<String>(passwordHash);
     map['role'] = Variable<String>(role);
+    map['is_active'] = Variable<bool>(isActive);
+    map['session_duration'] = Variable<int>(sessionDuration);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -246,6 +304,8 @@ class User extends DataClass implements Insertable<User> {
       email: Value(email),
       passwordHash: Value(passwordHash),
       role: Value(role),
+      isActive: Value(isActive),
+      sessionDuration: Value(sessionDuration),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -262,6 +322,8 @@ class User extends DataClass implements Insertable<User> {
       email: serializer.fromJson<String>(json['email']),
       passwordHash: serializer.fromJson<String>(json['passwordHash']),
       role: serializer.fromJson<String>(json['role']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      sessionDuration: serializer.fromJson<int>(json['sessionDuration']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -275,6 +337,8 @@ class User extends DataClass implements Insertable<User> {
       'email': serializer.toJson<String>(email),
       'passwordHash': serializer.toJson<String>(passwordHash),
       'role': serializer.toJson<String>(role),
+      'isActive': serializer.toJson<bool>(isActive),
+      'sessionDuration': serializer.toJson<int>(sessionDuration),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -286,6 +350,8 @@ class User extends DataClass implements Insertable<User> {
     String? email,
     String? passwordHash,
     String? role,
+    bool? isActive,
+    int? sessionDuration,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => User(
@@ -294,6 +360,8 @@ class User extends DataClass implements Insertable<User> {
     email: email ?? this.email,
     passwordHash: passwordHash ?? this.passwordHash,
     role: role ?? this.role,
+    isActive: isActive ?? this.isActive,
+    sessionDuration: sessionDuration ?? this.sessionDuration,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -306,6 +374,10 @@ class User extends DataClass implements Insertable<User> {
           ? data.passwordHash.value
           : this.passwordHash,
       role: data.role.present ? data.role.value : this.role,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      sessionDuration: data.sessionDuration.present
+          ? data.sessionDuration.value
+          : this.sessionDuration,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -319,6 +391,8 @@ class User extends DataClass implements Insertable<User> {
           ..write('email: $email, ')
           ..write('passwordHash: $passwordHash, ')
           ..write('role: $role, ')
+          ..write('isActive: $isActive, ')
+          ..write('sessionDuration: $sessionDuration, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -326,8 +400,17 @@ class User extends DataClass implements Insertable<User> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, email, passwordHash, role, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    email,
+    passwordHash,
+    role,
+    isActive,
+    sessionDuration,
+    createdAt,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -337,6 +420,8 @@ class User extends DataClass implements Insertable<User> {
           other.email == this.email &&
           other.passwordHash == this.passwordHash &&
           other.role == this.role &&
+          other.isActive == this.isActive &&
+          other.sessionDuration == this.sessionDuration &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -347,6 +432,8 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<String> email;
   final Value<String> passwordHash;
   final Value<String> role;
+  final Value<bool> isActive;
+  final Value<int> sessionDuration;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const UsersCompanion({
@@ -355,6 +442,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.email = const Value.absent(),
     this.passwordHash = const Value.absent(),
     this.role = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.sessionDuration = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -364,6 +453,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     required String email,
     required String passwordHash,
     this.role = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.sessionDuration = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : name = Value(name),
@@ -375,6 +466,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     Expression<String>? email,
     Expression<String>? passwordHash,
     Expression<String>? role,
+    Expression<bool>? isActive,
+    Expression<int>? sessionDuration,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -384,6 +477,8 @@ class UsersCompanion extends UpdateCompanion<User> {
       if (email != null) 'email': email,
       if (passwordHash != null) 'password_hash': passwordHash,
       if (role != null) 'role': role,
+      if (isActive != null) 'is_active': isActive,
+      if (sessionDuration != null) 'session_duration': sessionDuration,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -395,6 +490,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     Value<String>? email,
     Value<String>? passwordHash,
     Value<String>? role,
+    Value<bool>? isActive,
+    Value<int>? sessionDuration,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -404,6 +501,8 @@ class UsersCompanion extends UpdateCompanion<User> {
       email: email ?? this.email,
       passwordHash: passwordHash ?? this.passwordHash,
       role: role ?? this.role,
+      isActive: isActive ?? this.isActive,
+      sessionDuration: sessionDuration ?? this.sessionDuration,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -427,6 +526,12 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (role.present) {
       map['role'] = Variable<String>(role.value);
     }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (sessionDuration.present) {
+      map['session_duration'] = Variable<int>(sessionDuration.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -444,6 +549,8 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('email: $email, ')
           ..write('passwordHash: $passwordHash, ')
           ..write('role: $role, ')
+          ..write('isActive: $isActive, ')
+          ..write('sessionDuration: $sessionDuration, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -3970,6 +4077,8 @@ typedef $$UsersTableCreateCompanionBuilder =
       required String email,
       required String passwordHash,
       Value<String> role,
+      Value<bool> isActive,
+      Value<int> sessionDuration,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -3980,6 +4089,8 @@ typedef $$UsersTableUpdateCompanionBuilder =
       Value<String> email,
       Value<String> passwordHash,
       Value<String> role,
+      Value<bool> isActive,
+      Value<int> sessionDuration,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -4014,6 +4125,16 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
 
   ColumnFilters<String> get role => $composableBuilder(
     column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sessionDuration => $composableBuilder(
+    column: $table.sessionDuration,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4062,6 +4183,16 @@ class $$UsersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sessionDuration => $composableBuilder(
+    column: $table.sessionDuration,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4098,6 +4229,14 @@ class $$UsersTableAnnotationComposer
 
   GeneratedColumn<String> get role =>
       $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<int> get sessionDuration => $composableBuilder(
+    column: $table.sessionDuration,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -4139,6 +4278,8 @@ class $$UsersTableTableManager
                 Value<String> email = const Value.absent(),
                 Value<String> passwordHash = const Value.absent(),
                 Value<String> role = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<int> sessionDuration = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => UsersCompanion(
@@ -4147,6 +4288,8 @@ class $$UsersTableTableManager
                 email: email,
                 passwordHash: passwordHash,
                 role: role,
+                isActive: isActive,
+                sessionDuration: sessionDuration,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -4157,6 +4300,8 @@ class $$UsersTableTableManager
                 required String email,
                 required String passwordHash,
                 Value<String> role = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<int> sessionDuration = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => UsersCompanion.insert(
@@ -4165,6 +4310,8 @@ class $$UsersTableTableManager
                 email: email,
                 passwordHash: passwordHash,
                 role: role,
+                isActive: isActive,
+                sessionDuration: sessionDuration,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
