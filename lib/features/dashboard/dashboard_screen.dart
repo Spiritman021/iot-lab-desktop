@@ -211,6 +211,7 @@ class _DashboardPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isEc = device.type == 'ec';
+    final isThreePointPh = !isEc && device.mode == '3';
     final theme = Theme.of(context);
 
     return ListenableBuilder(
@@ -221,6 +222,18 @@ class _DashboardPanel extends StatelessWidget {
           mqttService.deviceStatus[id],
           DateTime.now().millisecondsSinceEpoch,
         );
+        final slopeValue = isThreePointPh
+            ? mqttService.deviceValues['/$id/A1'] ??
+                mqttService.deviceValues['/$id/SLOPE_4'] ??
+                mqttService.deviceValues['/$id/SLOPE_3'] ??
+                mqttService.deviceValues['/$id/SLOPE'] ??
+                '00'
+            : mqttService.deviceValues['/$id/SLOPE'] ?? '00';
+        final offsetValue = isThreePointPh
+            ? mqttService.deviceValues['/$id/A0'] ??
+                mqttService.deviceValues['/$id/OFFSET'] ??
+                '00'
+            : mqttService.deviceValues['/$id/OFFSET'] ?? '00';
 
         return Card(
           elevation: 1,
@@ -279,9 +292,9 @@ class _DashboardPanel extends StatelessWidget {
                       // Slope & Offset only on Calibrate tab
                       if (selectedTab == 'Calibrate') ...[
                         _InfoCard(icon: LucideIcons.moveDownRight, label: 'Slope',
-                            value: mqttService.deviceValues['/$id/SLOPE'] ?? '00', unit: '%'),
+                            value: slopeValue, unit: '%'),
                         _InfoCard(icon: LucideIcons.arrowLeftRight, label: 'Offset',
-                            value: mqttService.deviceValues['/$id/OFFSET'] ?? '00', unit: '%'),
+                            value: offsetValue, unit: '%'),
                       ],
                     ],
                   ),
