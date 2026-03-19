@@ -13,7 +13,12 @@ import 'manage_users_screen.dart';
 /// Admin Settings screen — requires password re-authentication.
 /// After auth, shows tabs: MQTT | Devices | Users | Audit | Company
 class AdminSettingsScreen extends StatefulWidget {
-  const AdminSettingsScreen({super.key});
+  final int initialTab;
+
+  const AdminSettingsScreen({
+    super.key,
+    this.initialTab = 0,
+  });
 
   @override
   State<AdminSettingsScreen> createState() => _AdminSettingsScreenState();
@@ -29,7 +34,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         onAuthenticated: () => setState(() => _authenticated = true),
       );
     }
-    return const _AdminTabbedBody();
+    return _AdminTabbedBody(initialTab: widget.initialTab);
   }
 }
 
@@ -200,7 +205,9 @@ class _PasswordGateState extends State<_PasswordGate> {
 // ─── Admin Tabbed Body (MQTT | Devices | Users | Audit | Company) ───────────
 
 class _AdminTabbedBody extends StatefulWidget {
-  const _AdminTabbedBody();
+  final int initialTab;
+
+  const _AdminTabbedBody({required this.initialTab});
 
   @override
   State<_AdminTabbedBody> createState() => _AdminTabbedBodyState();
@@ -213,7 +220,11 @@ class _AdminTabbedBodyState extends State<_AdminTabbedBody>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(
+      length: 5,
+      vsync: this,
+      initialIndex: widget.initialTab.clamp(0, 4),
+    );
   }
 
   @override

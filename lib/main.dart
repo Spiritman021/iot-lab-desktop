@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/auth/auth_service.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
+import 'core/theme_mode_controller.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +19,7 @@ class IoTLabApp extends StatefulWidget {
 
 class _IoTLabAppState extends State<IoTLabApp> {
   final AuthService _authService = AuthService.instance;
-  bool _isDark = false;
+  final ThemeModeController _themeModeController = ThemeModeController.instance;
   bool _initialized = false;
 
   @override
@@ -30,9 +30,8 @@ class _IoTLabAppState extends State<IoTLabApp> {
 
   Future<void> _initialize() async {
     await _authService.init();
-    final prefs = await SharedPreferences.getInstance();
+    await _themeModeController.init();
     setState(() {
-      _isDark = prefs.getBool('isDark') ?? false;
       _initialized = true;
     });
   }
@@ -51,13 +50,18 @@ class _IoTLabAppState extends State<IoTLabApp> {
 
     final router = createRouter(_authService);
 
-    return MaterialApp.router(
-      debugShowCheckedModeBanner: false,
-      title: 'IOT Lab',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: _isDark ? ThemeMode.dark : ThemeMode.light,
-      routerConfig: router,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: _themeModeController.themeMode,
+      builder: (context, themeMode, _) {
+        return MaterialApp.router(
+          debugShowCheckedModeBanner: false,
+          title: 'IOT Lab',
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeMode,
+          routerConfig: router,
+        );
+      },
     );
   }
 }

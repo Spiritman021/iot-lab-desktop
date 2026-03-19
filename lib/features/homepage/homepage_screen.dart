@@ -80,7 +80,7 @@ class _HomepageScreenState extends State<HomepageScreen> {
                             const SizedBox(height: 8),
                             TextButton(
                               onPressed: () =>
-                                  context.go('/settings/devices'),
+                                  context.go('/settings/admin?tab=devices'),
                               child: const Text('Add a device'),
                             ),
                           ],

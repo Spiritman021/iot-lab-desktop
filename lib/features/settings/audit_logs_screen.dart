@@ -153,41 +153,52 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SingleChildScrollView(
-                      child: DataTable(
-                        columnSpacing: 16,
-                        columns: const [
-                          DataColumn(label: Text('Timestamp')),
-                          DataColumn(label: Text('User ID')),
-                          DataColumn(label: Text('User')),
-                          DataColumn(label: Text('Category')),
-                          DataColumn(label: Text('Action')),
-                          DataColumn(label: Text('Entity')),
-                          DataColumn(label: Text('Status')),
-                          DataColumn(label: Text('Details')),
-                        ],
-                        rows: _logs.map((log) {
-                          return DataRow(cells: [
-                            DataCell(Text(_dateFormat.format(log.createdAt))),
-                            DataCell(Text(log.userId?.toString() ?? '--')),
-                            DataCell(Text(log.userName)),
-                            DataCell(Text(log.category)),
-                            DataCell(Text(log.action)),
-                            DataCell(Text(
-                                '${log.entityType}${log.entityId.isEmpty ? '' : ' #${log.entityId}'}')),
-                            DataCell(Text(log.status)),
-                            DataCell(
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 360),
-                                child: Text(_prettyDetails(log.details)),
-                              ),
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: constraints.maxWidth,
+                          ),
+                          child: SingleChildScrollView(
+                            child: DataTable(
+                              columnSpacing: 16,
+                              columns: const [
+                                DataColumn(label: Text('Timestamp')),
+                                DataColumn(label: Text('User ID')),
+                                DataColumn(label: Text('User')),
+                                DataColumn(label: Text('Category')),
+                                DataColumn(label: Text('Action')),
+                                DataColumn(label: Text('Entity')),
+                                DataColumn(label: Text('Status')),
+                                DataColumn(label: Text('Details')),
+                              ],
+                              rows: _logs.map((log) {
+                                return DataRow(cells: [
+                                  DataCell(
+                                      Text(_dateFormat.format(log.createdAt))),
+                                  DataCell(Text(log.userId?.toString() ?? '--')),
+                                  DataCell(Text(log.userName)),
+                                  DataCell(Text(log.category)),
+                                  DataCell(Text(log.action)),
+                                  DataCell(Text(
+                                      '${log.entityType}${log.entityId.isEmpty ? '' : ' #${log.entityId}'}')),
+                                  DataCell(Text(log.status)),
+                                  DataCell(
+                                    ConstrainedBox(
+                                      constraints:
+                                          const BoxConstraints(maxWidth: 360),
+                                      child: Text(_prettyDetails(log.details)),
+                                    ),
+                                  ),
+                                ]);
+                              }).toList(),
                             ),
-                          ]);
-                        }).toList(),
-                      ),
-                    ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
           ),
         ],

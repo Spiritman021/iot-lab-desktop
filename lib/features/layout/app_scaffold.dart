@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/mqtt/mqtt_service.dart';
+import '../../core/theme_mode_controller.dart';
 
 /// App scaffold with sidebar, session timer countdown, and auto-logout.
 class AppScaffold extends StatefulWidget {
@@ -31,12 +32,13 @@ class AppScaffoldState extends State<AppScaffold> {
   MqttService get mqttService => _mqttService;
 
   int _selectedIndex = 0;
-  bool _isDark = false;
+  final ThemeModeController _themeModeController = ThemeModeController.instance;
 
   // ── Session Timer ──
   Timer? _sessionTimer;
   int _remainingSeconds = 0;
   int _totalSeconds = 0;
+  int? _sessionExpiresAtMillis;
 
   @override
   void initState() {
@@ -51,42 +53,56 @@ class AppScaffoldState extends State<AppScaffold> {
         _startSessionTimer();
       }
     });
-
-    _loadThemePreference();
   }
 
   // ── Session Timer Methods ──
 
-  void _startSessionTimer() {
+  Future<void> _startSessionTimer() async {
     final user = _authService.currentUser;
     if (user == null) return;
 
+    final prefs = await SharedPreferences.getInstance();
     _totalSeconds = user.sessionDuration * 60;
-    _remainingSeconds = _totalSeconds;
+    final savedUserId = prefs.getInt('sessionUserId');
+    final savedExpiry = prefs.getInt('sessionExpiresAt');
+
+    if (savedUserId == user.id &&
+        savedExpiry != null &&
+        savedExpiry > DateTime.now().millisecondsSinceEpoch) {
+      _sessionExpiresAtMillis = savedExpiry;
+    } else {
+      _sessionExpiresAtMillis =
+          DateTime.now().millisecondsSinceEpoch + (_totalSeconds * 1000);
+      await prefs.setInt('sessionUserId', user.id);
+      await prefs.setInt('sessionExpiresAt', _sessionExpiresAtMillis!);
+    }
+
+    _updateRemainingFromExpiry();
 
     _sessionTimer?.cancel();
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() {
-        _remainingSeconds--;
-      });
+      _updateRemainingFromExpiry();
       if (_remainingSeconds <= 0) {
         _handleSessionTimeout();
       }
     });
   }
 
-  void resetSessionTimer() {
-    final user = _authService.currentUser;
-    if (user == null) return;
+  void _updateRemainingFromExpiry() {
+    if (_sessionExpiresAtMillis == null) return;
+    final remaining = ((_sessionExpiresAtMillis! -
+                DateTime.now().millisecondsSinceEpoch) /
+            1000)
+        .ceil();
     setState(() {
-      _totalSeconds = user.sessionDuration * 60;
-      _remainingSeconds = _totalSeconds;
+      _remainingSeconds = remaining.clamp(0, _totalSeconds);
     });
   }
 
   void _handleSessionTimeout() {
     _sessionTimer?.cancel();
+    _sessionExpiresAtMillis = null;
     _authService.logout();
     if (mounted) {
       context.go('/login');
@@ -110,25 +126,6 @@ class AppScaffoldState extends State<AppScaffold> {
     final mins = _totalSeconds ~/ 60;
     return '$mins min${mins > 1 ? 's' : ''}';
   }
-
-  // ── Theme ──
-
-  Future<void> _loadThemePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isDark = prefs.getBool('isDark') ?? false;
-    });
-  }
-
-  Future<void> _toggleTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isDark = !_isDark;
-    });
-    await prefs.setBool('isDark', _isDark);
-  }
-
-  bool get isDark => _isDark;
 
   void _onDestinationSelected(int index) {
     setState(() => _selectedIndex = index);
@@ -196,17 +193,12 @@ class AppScaffoldState extends State<AppScaffold> {
     final isUrgent = _remainingSeconds < 60 && _remainingSeconds > 0;
     final timerColor = isUrgent ? Colors.red : Theme.of(context).colorScheme.primary;
 
-    // Wrap with Listener to detect mouse/keyboard activity for session reset
-    return Listener(
-      onPointerDown: (_) => resetSessionTimer(),
-      onPointerMove: (_) => resetSessionTimer(),
-      child: KeyboardListener(
-        focusNode: FocusNode(),
-        autofocus: true,
-        onKeyEvent: (_) => resetSessionTimer(),
-        child: Scaffold(
-          body: Row(
-            children: [
+    final themeMode = _themeModeController.themeMode.value;
+    final isDark = themeMode == ThemeMode.dark;
+
+    return Scaffold(
+      body: Row(
+        children: [
               // Sidebar
               NavigationRail(
                 selectedIndex: _selectedIndex.clamp(0, destinations.length - 1),
@@ -297,9 +289,9 @@ class AppScaffoldState extends State<AppScaffold> {
                       const SizedBox(height: 8),
                       // Dark mode toggle
                       IconButton(
-                        icon: Icon(_isDark ? LucideIcons.sun : LucideIcons.moon,
+                        icon: Icon(isDark ? LucideIcons.sun : LucideIcons.moon,
                             size: 18),
-                        onPressed: _toggleTheme,
+                        onPressed: _themeModeController.toggle,
                         tooltip: 'Toggle theme',
                       ),
                       const SizedBox(height: 4),
@@ -354,8 +346,6 @@ class AppScaffoldState extends State<AppScaffold> {
               // Main content
               Expanded(child: widget.child),
             ],
-          ),
-        ),
       ),
     );
   }

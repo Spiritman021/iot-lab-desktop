@@ -54,7 +54,15 @@ GoRouter createRouter(AuthService authService) {
           ),
           GoRoute(
             path: '/settings/admin',
-            builder: (context, state) => const AdminSettingsScreen(),
+            builder: (context, state) => AdminSettingsScreen(
+              initialTab: switch (state.uri.queryParameters['tab']) {
+                'devices' => 1,
+                'users' => 2,
+                'audit' => 3,
+                'company' => 4,
+                _ => 0,
+              },
+            ),
           ),
           GoRoute(
             path: '/files',
@@ -65,4 +73,3 @@ GoRouter createRouter(AuthService authService) {
     ],
   );
 }
-

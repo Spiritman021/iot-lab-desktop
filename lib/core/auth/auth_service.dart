@@ -332,6 +332,8 @@ class AuthService extends ChangeNotifier {
     AuditContext.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('userId');
+    await prefs.remove('sessionUserId');
+    await prefs.remove('sessionExpiresAt');
     notifyListeners();
   }
 
