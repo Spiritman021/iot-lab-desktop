@@ -110,7 +110,7 @@ class LocalBrokerService extends ChangeNotifier {
     }
 
     final workingDirectory = File(_exePath).parent.path;
-    final commandPreview = '"$_exePath" -c "$_configPath"';
+    final commandPreview = '"$_exePath" -v -c "$_configPath"';
     _addLog('Command: $commandPreview');
     _addLog('Working directory: $workingDirectory');
 
@@ -143,7 +143,7 @@ class LocalBrokerService extends ChangeNotifier {
     try {
       final process = await Process.start(
         _exePath,
-        ['-c', _configPath],
+        ['-v', '-c', _configPath],
         workingDirectory: workingDirectory,
         runInShell: false,
       );
