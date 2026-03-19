@@ -109,6 +109,11 @@ class LocalBrokerService extends ChangeNotifier {
       return true;
     }
 
+    final workingDirectory = File(_exePath).parent.path;
+    final commandPreview = '"$_exePath" -c "$_configPath"';
+    _addLog('Command: $commandPreview');
+    _addLog('Working directory: $workingDirectory');
+
     if (!File(_exePath).existsSync()) {
       _statusMessage = 'Mosquitto executable not found';
       _addLog('Executable not found: $_exePath', isError: true);
@@ -139,7 +144,7 @@ class LocalBrokerService extends ChangeNotifier {
       final process = await Process.start(
         _exePath,
         ['-c', _configPath],
-        workingDirectory: File(_exePath).parent.path,
+        workingDirectory: workingDirectory,
         runInShell: false,
       );
 
