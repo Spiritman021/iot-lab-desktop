@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../core/audit/audit_service.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/mqtt/local_broker_service.dart';
 import '../../core/mqtt/mqtt_service.dart';
 import 'audit_logs_screen.dart';
 import 'company_details_screen.dart';
@@ -315,9 +316,13 @@ class _MqttSettingsTab extends StatefulWidget {
 
 class _MqttSettingsTabState extends State<_MqttSettingsTab> {
   final _mqttService = MqttService.instance;
+  final _brokerService = LocalBrokerService.instance;
   late final TextEditingController _urlController;
   late final TextEditingController _portController;
+  late final TextEditingController _exePathController;
+  late final TextEditingController _configPathController;
   bool _connecting = false;
+  bool _managingBroker = false;
 
   @override
   void initState() {
@@ -325,6 +330,17 @@ class _MqttSettingsTabState extends State<_MqttSettingsTab> {
     _urlController = TextEditingController(text: _mqttService.brokerUrl);
     _portController =
         TextEditingController(text: _mqttService.brokerPort.toString());
+    _exePathController = TextEditingController();
+    _configPathController = TextEditingController();
+    _initializeBrokerControls();
+  }
+
+  Future<void> _initializeBrokerControls() async {
+    await _brokerService.init();
+    if (!mounted) return;
+    _exePathController.text = _brokerService.exePath;
+    _configPathController.text = _brokerService.configPath;
+    setState(() {});
   }
 
   Future<void> _connectMqtt() async {
@@ -371,10 +387,75 @@ class _MqttSettingsTabState extends State<_MqttSettingsTab> {
     }
   }
 
+  Future<void> _saveBrokerPaths() async {
+    await _brokerService.savePaths(
+      exePath: _exePathController.text,
+      configPath: _configPathController.text,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Local broker paths saved'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  Future<void> _resetBrokerPaths() async {
+    await _brokerService.resetPathsToDefault();
+    if (!mounted) return;
+    _exePathController.text = _brokerService.exePath;
+    _configPathController.text = _brokerService.configPath;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Broker paths reset to default'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  Future<void> _startLocalBroker() async {
+    setState(() => _managingBroker = true);
+    await _saveBrokerPaths();
+    final started = await _brokerService.startBroker();
+    if (!mounted) return;
+    setState(() => _managingBroker = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          started
+              ? 'Local broker is available'
+              : 'Failed to start local broker',
+        ),
+        backgroundColor: started ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
+  Future<void> _restartLocalBroker() async {
+    setState(() => _managingBroker = true);
+    await _saveBrokerPaths();
+    final restarted = await _brokerService.restartBroker();
+    if (!mounted) return;
+    setState(() => _managingBroker = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          restarted
+              ? 'Local broker restarted'
+              : 'Failed to restart local broker',
+        ),
+        backgroundColor: restarted ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _urlController.dispose();
     _portController.dispose();
+    _exePathController.dispose();
+    _configPathController.dispose();
     super.dispose();
   }
 
@@ -414,6 +495,74 @@ class _MqttSettingsTabState extends State<_MqttSettingsTab> {
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Local Broker Status
+                  ListenableBuilder(
+                    listenable: _brokerService,
+                    builder: (context, _) {
+                      final brokerRunning = _brokerService.isManagedProcessRunning;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: brokerRunning
+                              ? Colors.blue.withValues(alpha: 0.1)
+                              : theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: brokerRunning
+                                ? Colors.blue.withValues(alpha: 0.3)
+                                : theme.colorScheme.outline.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              brokerRunning
+                                  ? LucideIcons.serverCog
+                                  : LucideIcons.serverCrash,
+                              size: 18,
+                              color: brokerRunning
+                                  ? Colors.blue.shade700
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    brokerRunning
+                                        ? 'Local broker managed by app'
+                                        : 'Local broker not managed',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    _brokerService.statusMessage,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  if (_brokerService.pid != null)
+                                    Text(
+                                      'PID: ${_brokerService.pid}',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
 
@@ -475,6 +624,79 @@ class _MqttSettingsTabState extends State<_MqttSettingsTab> {
                     },
                   ),
                   const SizedBox(height: 20),
+
+                  Text(
+                    'Local Mosquitto Files',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Edit these paths to point to the Mosquitto executable and config file shipped with your desktop app.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _exePathController,
+                    decoration: const InputDecoration(
+                      labelText: 'Mosquitto Executable Path',
+                      hintText: r'C:\...\mosquitto\mosquitto.exe',
+                      prefixIcon: Icon(LucideIcons.folderSearch),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _configPathController,
+                    decoration: const InputDecoration(
+                      labelText: 'Mosquitto Config Path',
+                      hintText: r'C:\...\mosquitto\mosquitto.conf',
+                      prefixIcon: Icon(LucideIcons.fileCog),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _saveBrokerPaths,
+                        icon: const Icon(LucideIcons.save, size: 16),
+                        label: const Text('Save Paths'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: _resetBrokerPaths,
+                        icon: const Icon(LucideIcons.rotateCcw, size: 16),
+                        label: const Text('Use Default Paths'),
+                      ),
+                      FilledButton.icon(
+                        onPressed:
+                            _managingBroker ? null : _startLocalBroker,
+                        icon: _managingBroker
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(LucideIcons.play, size: 16),
+                        label: Text(
+                          _managingBroker ? 'Starting...' : 'Start Local Broker',
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed:
+                            _managingBroker ? null : _restartLocalBroker,
+                        icon: const Icon(LucideIcons.refreshCw, size: 16),
+                        label: const Text('Restart Broker'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
 
                   // URL and Port Fields
                   Row(
@@ -557,6 +779,55 @@ class _MqttSettingsTabState extends State<_MqttSettingsTab> {
                               label: const Text('Reconnect'),
                             ),
                         ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  Row(
+                    children: [
+                      Text(
+                        'Broker Terminal',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: _brokerService.clearLogs,
+                        icon: const Icon(LucideIcons.trash2, size: 16),
+                        label: const Text('Clear Logs'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ListenableBuilder(
+                    listenable: _brokerService,
+                    builder: (context, _) {
+                      final logs = _brokerService.logs;
+                      return Container(
+                        width: double.infinity,
+                        constraints: const BoxConstraints(minHeight: 180),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F1720),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF243140),
+                          ),
+                        ),
+                        child: SingleChildScrollView(
+                          child: SelectableText(
+                            logs.isEmpty
+                                ? 'No broker logs yet. Startup attempts, stdout, stderr, and process exits will appear here.'
+                                : logs.join('\n'),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFFE5EEF8),
+                              fontFamily: 'monospace',
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
                       );
                     },
                   ),
