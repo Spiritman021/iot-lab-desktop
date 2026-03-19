@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'core/auth/auth_service.dart';
+import 'core/mqtt/local_broker_service.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
 import 'core/theme_mode_controller.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await LocalBrokerService.instance.ensureStarted();
   runApp(const IoTLabApp());
 }
 
