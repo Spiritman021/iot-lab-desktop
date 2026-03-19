@@ -149,7 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                         const SizedBox(width: 10),
                                         Text(
-                                          'TLC IOT Lab',
+                                          'Crescent Lab',
                                           style: theme.textTheme.titleMedium
                                               ?.copyWith(
                                             fontWeight: FontWeight.w700,
@@ -239,7 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    'TLC IOT Lab',
+                                                    'Crescent Lab',
                                                     style: theme
                                                         .textTheme.headlineSmall
                                                         ?.copyWith(

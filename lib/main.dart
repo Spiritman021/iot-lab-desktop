@@ -55,7 +55,7 @@ class _IoTLabAppState extends State<IoTLabApp> {
       builder: (context, themeMode, _) {
         return MaterialApp.router(
           debugShowCheckedModeBanner: false,
-          title: 'IOT Lab',
+          title: 'Crescent Lab',
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeMode,

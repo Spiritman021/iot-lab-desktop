@@ -226,7 +226,7 @@ class AppScaffoldState extends State<AppScaffold> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'IOT Lab',
+                        'Crescent Lab',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),

@@ -118,7 +118,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            'IOT Lab',
+                            'Crescent Lab',
                             style: Theme.of(context)
                                 .textTheme
                                 .headlineSmall
