@@ -127,39 +127,31 @@ class _LoginScreenState extends State<LoginScreen> {
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 10),
+                                        horizontal: 22, vertical: 18),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.65),
-                                      borderRadius: BorderRadius.circular(999),
+                                      color: Colors.white.withValues(alpha: 0.66),
+                                      borderRadius: BorderRadius.circular(28),
                                       border: Border.all(
-                                        color: Colors.white.withValues(alpha: 0.7),
+                                        color: Colors.white.withValues(alpha: 0.78),
                                       ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: Image.asset(
-                                            'assets/tlc_logo.png',
-                                            width: 28,
-                                            height: 28,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          'Crescent Lab',
-                                          style: theme.textTheme.titleMedium
-                                              ?.copyWith(
-                                            fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF1F4D3A),
-                                          ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.08),
+                                          blurRadius: 28,
+                                          offset: const Offset(0, 16),
                                         ),
                                       ],
                                     ),
+                                    child: ConstrainedBox(
+                                      constraints:
+                                          const BoxConstraints(maxWidth: 560),
+                                      child: Image.asset(
+                                        'assets/crescent.png',
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
                                   ),
-                                  const SizedBox(height: 28),
+                                  const SizedBox(height: 32),
                                   Text(
                                     'Smart laboratory monitoring for reliable calibration, logging, and reporting.',
                                     style: theme.textTheme.displaySmall?.copyWith(
