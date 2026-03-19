@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bcrypt/bcrypt.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -323,6 +325,9 @@ class _MqttSettingsTabState extends State<_MqttSettingsTab> {
   late final TextEditingController _configPathController;
   bool _connecting = false;
   bool _managingBroker = false;
+  bool _loadingLocalIps = false;
+  List<String> _localIps = const [];
+  String? _localIpsError;
 
   @override
   void initState() {
@@ -333,6 +338,7 @@ class _MqttSettingsTabState extends State<_MqttSettingsTab> {
     _exePathController = TextEditingController();
     _configPathController = TextEditingController();
     _initializeBrokerControls();
+    _loadLocalIps();
   }
 
   Future<void> _initializeBrokerControls() async {
@@ -341,6 +347,69 @@ class _MqttSettingsTabState extends State<_MqttSettingsTab> {
     _exePathController.text = _brokerService.exePath;
     _configPathController.text = _brokerService.configPath;
     setState(() {});
+  }
+
+  Future<void> _loadLocalIps() async {
+    setState(() {
+      _loadingLocalIps = true;
+      _localIpsError = null;
+    });
+
+    try {
+      final ips = Platform.isWindows
+          ? await _loadLocalIpsFromIpconfig()
+          : await _loadLocalIpsFromInterfaces();
+
+      if (!mounted) return;
+      setState(() {
+        _localIps = ips;
+        _loadingLocalIps = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _localIps = const [];
+        _localIpsError = e.toString();
+        _loadingLocalIps = false;
+      });
+    }
+  }
+
+  Future<List<String>> _loadLocalIpsFromIpconfig() async {
+    final result = await Process.run('ipconfig', const []);
+    final output = '${result.stdout}\n${result.stderr}';
+    final regex = RegExp(r'IPv4[^\:]*:\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)');
+    final matches = regex.allMatches(output);
+    final ips = <String>{};
+
+    for (final match in matches) {
+      final ip = match.group(1);
+      if (ip != null && ip != '127.0.0.1') {
+        ips.add(ip);
+      }
+    }
+
+    if (ips.isEmpty) {
+      return _loadLocalIpsFromInterfaces();
+    }
+
+    return ips.toList()..sort();
+  }
+
+  Future<List<String>> _loadLocalIpsFromInterfaces() async {
+    final interfaces = await NetworkInterface.list(
+      includeLoopback: false,
+      type: InternetAddressType.IPv4,
+    );
+    final ips = <String>{};
+    for (final interface in interfaces) {
+      for (final address in interface.addresses) {
+        if (!address.isLoopback) {
+          ips.add(address.address);
+        }
+      }
+    }
+    return ips.toList()..sort();
   }
 
   Future<void> _connectMqtt() async {
@@ -695,6 +764,90 @@ class _MqttSettingsTabState extends State<_MqttSettingsTab> {
                         label: const Text('Restart Broker'),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Detected Local IPs',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'These addresses are read from the local machine, matching the network details you would usually check with ipconfig.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: _loadingLocalIps ? null : _loadLocalIps,
+                        icon: _loadingLocalIps
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(LucideIcons.refreshCw, size: 16),
+                        label: Text(
+                          _loadingLocalIps ? 'Refreshing...' : 'Refresh IPs',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: _localIpsError != null
+                        ? Text(
+                            'Unable to read local IPs: $_localIpsError',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.red.shade700,
+                            ),
+                          )
+                        : _localIps.isEmpty
+                            ? Text(
+                                _loadingLocalIps
+                                    ? 'Reading local IP addresses...'
+                                    : 'No local IPv4 addresses detected.',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              )
+                            : Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: _localIps
+                                    .map(
+                                      (ip) => Chip(
+                                        avatar: const Icon(
+                                          LucideIcons.network,
+                                          size: 16,
+                                        ),
+                                        label: Text(ip),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
                   ),
                   const SizedBox(height: 24),
 
