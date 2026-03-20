@@ -43,6 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _disableTabs = false;
   String _selectedTab = 'Calibrate';
   bool _alarmEnabled = false;
+  bool _alarmMuted = false;
   Timer? _alarmMonitorTimer;
   DateTime? _lastAlarmPlayedAt;
   bool _alarmSoundPlaying = false;
@@ -110,6 +111,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (!mounted) return;
     setState(() {
       _alarmEnabled = enabled;
+      if (!enabled) {
+        _alarmMuted = false;
+      }
     });
     if (!enabled) {
       await _stopAlarmSound();
@@ -137,12 +141,21 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (!mounted || _device == null) return;
 
     final mqttService = AppScaffold.of(context).mqttService;
-    final shouldPlay = _shouldTriggerAlarm(
+    final triggered = _getAlarmTrigger(
       device: _device!,
       config: _config,
       mqttService: mqttService,
       alarmEnabled: _alarmEnabled,
     );
+    final shouldPlay = triggered != null && !_alarmMuted;
+
+    if (triggered == null) {
+      if (_alarmMuted) {
+        setState(() {
+          _alarmMuted = false;
+        });
+      }
+    }
 
     if (!shouldPlay) {
       await _stopAlarmSound();
@@ -168,11 +181,20 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Future<void> _stopAlarmSound() async {
     _lastAlarmPlayedAt = null;
+    _alarmSoundPlaying = false;
     try {
       await _alarmPlayer.stop();
     } catch (_) {
       // Ignore stop errors from already-idle player.
     }
+  }
+
+  Future<void> _muteAlarm() async {
+    if (!mounted) return;
+    setState(() {
+      _alarmMuted = true;
+    });
+    await _stopAlarmSound();
   }
 
   Future<void> _refreshLogs() async {
@@ -243,6 +265,8 @@ class _DashboardScreenState extends State<DashboardScreen>
             config: _config,
             mqttService: mqttService,
             alarmEnabled: _alarmEnabled,
+            alarmMuted: _alarmMuted,
+            onMute: _muteAlarm,
           ),
 
           // Tab content
@@ -2147,12 +2171,16 @@ class _AlarmBanner extends StatefulWidget {
   final DeviceConfig? config;
   final MqttService mqttService;
   final bool alarmEnabled;
+  final bool alarmMuted;
+  final Future<void> Function() onMute;
 
   const _AlarmBanner({
     required this.device,
     required this.config,
     required this.mqttService,
     required this.alarmEnabled,
+    required this.alarmMuted,
+    required this.onMute,
   });
 
   @override
@@ -2160,9 +2188,6 @@ class _AlarmBanner extends StatefulWidget {
 }
 
 class _AlarmBannerState extends State<_AlarmBanner> {
-  String? _alarmTriggered; // 'min' | 'max' | null
-  bool _muted = false;
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -2175,14 +2200,8 @@ class _AlarmBannerState extends State<_AlarmBanner> {
           alarmEnabled: widget.alarmEnabled,
         );
 
-        // Reset mute when alarm goes away
-        if (triggered == null && _alarmTriggered != null) {
-          _muted = false;
-        }
-        _alarmTriggered = triggered;
-
         if (triggered == null) return const SizedBox.shrink();
-        if (_muted) return const SizedBox.shrink();
+        if (widget.alarmMuted) return const SizedBox.shrink();
 
         return Container(
           width: double.infinity,
@@ -2220,9 +2239,7 @@ class _AlarmBannerState extends State<_AlarmBanner> {
                 ),
               ),
               FilledButton(
-                onPressed: () {
-                  setState(() => _muted = true);
-                },
+                onPressed: widget.onMute,
                 style: FilledButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text('Mute Alarm'),
               ),
@@ -2458,19 +2475,4 @@ String? _getAlarmTrigger({
   if (value < minPh) return 'min';
   if (value > maxPh) return 'max';
   return null;
-}
-
-bool _shouldTriggerAlarm({
-  required Device device,
-  required DeviceConfig? config,
-  required MqttService mqttService,
-  required bool alarmEnabled,
-}) {
-  return _getAlarmTrigger(
-        device: device,
-        config: config,
-        mqttService: mqttService,
-        alarmEnabled: alarmEnabled,
-      ) !=
-      null;
 }
