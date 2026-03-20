@@ -117,13 +117,25 @@ class AppScaffoldState extends State<AppScaffold> {
   }
 
   String get _formattedRemaining {
-    final mins = _remainingSeconds ~/ 60;
+    final hours = _remainingSeconds ~/ 3600;
+    final mins = (_remainingSeconds % 3600) ~/ 60;
     final secs = _remainingSeconds % 60;
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    }
     return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
   String get _formattedTotal {
+    final hours = _totalSeconds ~/ 3600;
     final mins = _totalSeconds ~/ 60;
+    if (hours > 0) {
+      final remainingMins = (_totalSeconds % 3600) ~/ 60;
+      if (remainingMins == 0) {
+        return '$hours hour${hours > 1 ? 's' : ''}';
+      }
+      return '$hours hour${hours > 1 ? 's' : ''} $remainingMins min';
+    }
     return '$mins min${mins > 1 ? 's' : ''}';
   }
 

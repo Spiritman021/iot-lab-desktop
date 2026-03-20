@@ -32,7 +32,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -116,6 +116,13 @@ class AppDatabase extends _$AppDatabase {
                 integrity_hash TEXT NOT NULL DEFAULT '',
                 created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
               )
+            ''');
+          }
+          if (from < 9) {
+            await customStatement('''
+              UPDATE users
+              SET session_duration = 480
+              WHERE session_duration = 30
             ''');
           }
         },

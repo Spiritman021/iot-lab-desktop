@@ -33,11 +33,11 @@ class UserRoles {
 
   /// Permission helpers
   /// Admin: full access to everything
-  /// Lab Tech: can log, graph, alarm, print calibration — but NOT start/reset/edit calibration
+  /// Lab Tech: can perform calibration, log, graph, and alarm actions.
   /// Viewer: view-only, no actions at all
 
   /// Can perform calibration actions (start, reset, edit table)
-  static bool canCalibrate(String role) => role == admin;
+  static bool canCalibrate(String role) => role == admin || role == labtech;
 
   /// Can perform logging, graph, alarm actions
   static bool canLog(String role) => role == admin || role == labtech;
@@ -109,7 +109,7 @@ class AuthService extends ChangeNotifier {
     required String email,
     required String password,
     String role = UserRoles.viewer,
-    int sessionDuration = 30,
+    int sessionDuration = 480,
     int passwordExpiryDays = 90,
   }) async {
     // Validate password strength

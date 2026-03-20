@@ -1727,9 +1727,9 @@ class _LogTabState extends State<_LogTab> {
               const SizedBox(width: 8),
               PopupMenuButton<String>(
                 enabled: !_disabled && canDoLog,
-                onSelected: (val) {
+                onSelected: (val) async {
                   if (val == 'Pdf') {
-                    ReportService.printLogsReport(
+                    await ReportService.printLogsReport(
                       context: context,
                       deviceId: widget.device.deviceId,
                       deviceType: widget.device.type,
@@ -1748,9 +1748,11 @@ class _LogTabState extends State<_LogTab> {
                   const PopupMenuItem(value: 'Pdf', child: Text('Export PDF')),
                   const PopupMenuItem(value: 'All', child: Text('Export All')),
                 ],
-                child: FilledButton.tonal(
-                  onPressed: (_disabled || !canDoLog) ? null : () {},
-                  child: const Text('Export'),
+                child: IgnorePointer(
+                  child: FilledButton.tonal(
+                    onPressed: (_disabled || !canDoLog) ? null : () {},
+                    child: const Text('Export'),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),

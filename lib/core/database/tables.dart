@@ -8,7 +8,7 @@ class Users extends Table {
   TextColumn get passwordHash => text()();
   TextColumn get role => text().withDefault(const Constant('user'))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
-  IntColumn get sessionDuration => integer().withDefault(const Constant(30))(); // minutes
+  IntColumn get sessionDuration => integer().withDefault(const Constant(480))(); // minutes
   DateTimeColumn get passwordChangedAt =>
       dateTime().withDefault(currentDateAndTime)();
   IntColumn get passwordExpiryDays =>

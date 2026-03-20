@@ -8,6 +8,9 @@ import '../../core/auth/password_validator.dart';
 import '../../core/constants.dart';
 import '../../core/database/app_database.dart';
 
+const int _defaultSessionDurationMinutes = 480;
+const int _maxSessionDurationMinutes = 10080;
+
 /// Manage Users screen — shows all users with create/edit/delete actions.
 /// Role options are Admin, Lab Tech, Viewer.
 class ManageUsersScreen extends StatefulWidget {
@@ -407,17 +410,21 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _sessionDurationController = TextEditingController(
+    text: _defaultSessionDurationMinutes.toString(),
+  );
   String _selectedRole = UserRoles.labtech;
-  int _selectedDuration = 30;
   int _selectedExpiryDays = 90;
   bool _loading = false;
   bool _obscurePassword = true;
 
-  static const List<int> _durationOptions = [1, 2, 5, 10, 15, 20, 30, 45, 60];
   static const List<int> _expiryOptions = [0, 30, 60, 90, 120, 180, 365];
 
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final sessionDuration =
+        int.parse(_sessionDurationController.text.trim());
 
     setState(() => _loading = true);
     try {
@@ -427,7 +434,7 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         role: _selectedRole,
-        sessionDuration: _selectedDuration,
+        sessionDuration: sessionDuration,
         passwordExpiryDays: _selectedExpiryDays,
       );
       if (mounted) {
@@ -455,6 +462,7 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _sessionDurationController.dispose();
     super.dispose();
   }
 
@@ -539,17 +547,21 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
               },
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<int>(
-              initialValue: _selectedDuration,
-              decoration: const InputDecoration(labelText: 'Session Timeout'),
-              items: _durationOptions
-                  .map((d) => DropdownMenuItem(
-                        value: d,
-                        child: Text('$d min${d > 1 ? 's' : ''}'),
-                      ))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) setState(() => _selectedDuration = v);
+            TextFormField(
+              controller: _sessionDurationController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Session Timeout (minutes)',
+                helperText: 'Default is 480 minutes (8 hours)',
+              ),
+              validator: (v) {
+                final value = int.tryParse((v ?? '').trim());
+                if (value == null) return 'Enter a valid number';
+                if (value <= 0) return 'Session time must be more than 0';
+                if (value > _maxSessionDurationMinutes) {
+                  return 'Use $_maxSessionDurationMinutes minutes or less';
+                }
+                return null;
               },
             ),
             const SizedBox(height: 12),
@@ -604,12 +616,11 @@ class _EditUserDialogState extends State<_EditUserDialog> {
   final _db = AppDatabase.instance;
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
+  late final TextEditingController _sessionDurationController;
   late String _selectedRole;
-  late int _selectedDuration;
   late int _selectedExpiryDays;
   bool _loading = false;
 
-  static const List<int> _durationOptions = [1, 2, 5, 10, 15, 20, 30, 45, 60];
   static const List<int> _expiryOptions = [0, 30, 60, 90, 120, 180, 365];
 
   @override
@@ -617,12 +628,30 @@ class _EditUserDialogState extends State<_EditUserDialog> {
     super.initState();
     _nameController = TextEditingController(text: widget.user.name);
     _emailController = TextEditingController(text: widget.user.email);
+    _sessionDurationController = TextEditingController(
+      text: widget.user.sessionDuration.toString(),
+    );
     _selectedRole = widget.user.role;
-    _selectedDuration = widget.user.sessionDuration;
     _selectedExpiryDays = widget.user.passwordExpiryDays;
   }
 
   Future<void> _handleSave() async {
+    final sessionDuration =
+        int.tryParse(_sessionDurationController.text.trim());
+    if (sessionDuration == null ||
+        sessionDuration <= 0 ||
+        sessionDuration > _maxSessionDurationMinutes) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Enter a valid session timeout between 1 and $_maxSessionDurationMinutes minutes',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
     try {
       await _db.updateUser(
@@ -631,7 +660,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
           name: Value(_nameController.text.trim()),
           email: Value(_emailController.text.trim()),
           role: Value(_selectedRole),
-          sessionDuration: Value(_selectedDuration),
+          sessionDuration: Value(sessionDuration),
           passwordExpiryDays: Value(_selectedExpiryDays),
           updatedAt: Value(DateTime.now()),
         ),
@@ -645,6 +674,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
           'name': _nameController.text.trim(),
           'email': _emailController.text.trim(),
           'role': _selectedRole,
+          'sessionDuration': sessionDuration,
         },
       );
       if (mounted) {
@@ -671,6 +701,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _sessionDurationController.dispose();
     super.dispose();
   }
 
@@ -705,18 +736,13 @@ class _EditUserDialogState extends State<_EditUserDialog> {
             },
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<int>(
-            initialValue: _selectedDuration,
-            decoration: const InputDecoration(labelText: 'Session Timeout'),
-            items: _durationOptions
-                .map((d) => DropdownMenuItem(
-                      value: d,
-                      child: Text('$d min${d > 1 ? 's' : ''}'),
-                    ))
-                .toList(),
-            onChanged: (v) {
-              if (v != null) setState(() => _selectedDuration = v);
-            },
+          TextField(
+            controller: _sessionDurationController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Session Timeout (minutes)',
+              helperText: 'Default is 480 minutes (8 hours)',
+            ),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<int>(

@@ -94,7 +94,7 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultValue: const Constant(30),
+    defaultValue: const Constant(480),
   );
   static const VerificationMeta _passwordChangedAtMeta = const VerificationMeta(
     'passwordChangedAt',
@@ -5888,17 +5888,17 @@ class AuditLog extends DataClass implements Insertable<AuditLog> {
   final int? userId;
   final String userName;
 
-  /// What entity was affected (e.g. "user", "device", "report")
+  /// What entity was affected
   final String entityType;
   final String entityId;
 
   /// Outcome
   final String status;
 
-  /// Additional details (JSON string)
+  /// Additional details serialized as JSON
   final String details;
 
-  /// SHA-256 hash of previous log entry + this entry's data = tamper-proof chain
+  /// Hash chain over previous record + current payload for tamper evidence
   final String integrityHash;
 
   /// Timestamp
