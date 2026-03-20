@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/audit/audit_service.dart';
 import '../../core/auth/auth_service.dart';
@@ -28,7 +30,9 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
+  static const _alarmActivePrefPrefix = 'device_alarm_active_';
   final AppDatabase _db = AppDatabase.instance;
+  final AudioPlayer _alarmPlayer = AudioPlayer();
   late TabController _tabController;
 
   Device? _device;
@@ -38,6 +42,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _loading = true;
   bool _disableTabs = false;
   String _selectedTab = 'Calibrate';
+  bool _alarmEnabled = false;
+  Timer? _alarmMonitorTimer;
+  DateTime? _lastAlarmPlayedAt;
+  bool _alarmSoundPlaying = false;
 
   @override
   void initState() {
@@ -50,7 +58,12 @@ class _DashboardScreenState extends State<DashboardScreen>
         });
       }
     });
+    _initializeAlarmAudio();
     _loadData();
+  }
+
+  Future<void> _initializeAlarmAudio() async {
+    await _alarmPlayer.setReleaseMode(ReleaseMode.stop);
   }
 
   Future<void> _loadData() async {
@@ -68,17 +81,97 @@ class _DashboardScreenState extends State<DashboardScreen>
         logs = await _db.getLogsForDevice(device.id);
       }
 
+      final alarmEnabled = await _loadAlarmEnabled();
+
       if (mounted) {
         setState(() {
           _device = device;
           _config = config;
           _calibrationRows = rows;
           _logs = logs;
+          _alarmEnabled = alarmEnabled;
           _loading = false;
         });
+        _startAlarmMonitor();
       }
     } catch (e) {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<bool> _loadAlarmEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('$_alarmActivePrefPrefix${widget.deviceId}') ?? false;
+  }
+
+  Future<void> _setAlarmEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('$_alarmActivePrefPrefix${widget.deviceId}', enabled);
+    if (!mounted) return;
+    setState(() {
+      _alarmEnabled = enabled;
+    });
+    if (!enabled) {
+      await _stopAlarmSound();
+    }
+    await AuditService.instance.log(
+      category: AuditService.catSettings,
+      action: enabled ? 'alarm_activated' : 'alarm_deactivated',
+      entityType: 'device',
+      entityId: widget.deviceId.toString(),
+      details: {
+        'deviceId': _device?.deviceId ?? widget.deviceId,
+      },
+    );
+  }
+
+  void _startAlarmMonitor() {
+    _alarmMonitorTimer?.cancel();
+    _alarmMonitorTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _evaluateAlarmSound(),
+    );
+  }
+
+  Future<void> _evaluateAlarmSound() async {
+    if (!mounted || _device == null) return;
+
+    final mqttService = AppScaffold.of(context).mqttService;
+    final shouldPlay = _shouldTriggerAlarm(
+      device: _device!,
+      config: _config,
+      mqttService: mqttService,
+      alarmEnabled: _alarmEnabled,
+    );
+
+    if (!shouldPlay) {
+      await _stopAlarmSound();
+      return;
+    }
+
+    final now = DateTime.now();
+    final canReplay = _lastAlarmPlayedAt == null ||
+        now.difference(_lastAlarmPlayedAt!) >= const Duration(seconds: 3);
+    if (!canReplay || _alarmSoundPlaying) return;
+
+    _alarmSoundPlaying = true;
+    _lastAlarmPlayedAt = now;
+    try {
+      await _alarmPlayer.stop();
+      await _alarmPlayer.play(AssetSource('alarm.wav'));
+    } catch (_) {
+      // Keep the visual alarm behavior even if audio playback fails.
+    } finally {
+      _alarmSoundPlaying = false;
+    }
+  }
+
+  Future<void> _stopAlarmSound() async {
+    _lastAlarmPlayedAt = null;
+    try {
+      await _alarmPlayer.stop();
+    } catch (_) {
+      // Ignore stop errors from already-idle player.
     }
   }
 
@@ -90,6 +183,8 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   void dispose() {
+    _alarmMonitorTimer?.cancel();
+    _alarmPlayer.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -147,6 +242,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             device: _device!,
             config: _config,
             mqttService: mqttService,
+            alarmEnabled: _alarmEnabled,
           ),
 
           // Tab content
@@ -185,6 +281,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                   mqttService: mqttService,
                   onRefresh: _loadData,
                   userRole: userRole,
+                  alarmEnabled: _alarmEnabled,
+                  onAlarmEnabledChanged: _setAlarmEnabled,
                 ),
               ],
             ),
@@ -2048,11 +2146,13 @@ class _AlarmBanner extends StatefulWidget {
   final Device device;
   final DeviceConfig? config;
   final MqttService mqttService;
+  final bool alarmEnabled;
 
   const _AlarmBanner({
     required this.device,
     required this.config,
     required this.mqttService,
+    required this.alarmEnabled,
   });
 
   @override
@@ -2065,30 +2165,15 @@ class _AlarmBannerState extends State<_AlarmBanner> {
 
   @override
   Widget build(BuildContext context) {
-    final minPh = widget.config?.minPh ?? 0;
-    final maxPh = widget.config?.maxPh ?? 0;
-    final deviceId = widget.device.deviceId;
-
     return ListenableBuilder(
       listenable: widget.mqttService,
       builder: (context, _) {
-        final value = double.tryParse(
-                widget.mqttService.deviceValues['/$deviceId/PH_VAL'] ?? '0') ??
-            0;
-        final isActive =
-            widget.mqttService.deviceValues['/$deviceId/STATUS'] == '1';
-
-        // Alarm logic (matching Alarm.tsx useEffect)
-        String? triggered;
-        if (minPh >= maxPh || !isActive) {
-          triggered = null;
-        } else {
-          if (value < minPh) {
-            triggered = 'min';
-          } else if (value > maxPh) {
-            triggered = 'max';
-          }
-        }
+        final triggered = _getAlarmTrigger(
+          device: widget.device,
+          config: widget.config,
+          mqttService: widget.mqttService,
+          alarmEnabled: widget.alarmEnabled,
+        );
 
         // Reset mute when alarm goes away
         if (triggered == null && _alarmTriggered != null) {
@@ -2157,6 +2242,8 @@ class _AlarmTab extends StatefulWidget {
   final MqttService mqttService;
   final VoidCallback onRefresh;
   final String userRole;
+  final bool alarmEnabled;
+  final Future<void> Function(bool enabled) onAlarmEnabledChanged;
 
   const _AlarmTab({
     required this.device,
@@ -2164,6 +2251,8 @@ class _AlarmTab extends StatefulWidget {
     required this.mqttService,
     required this.onRefresh,
     required this.userRole,
+    required this.alarmEnabled,
+    required this.onAlarmEnabledChanged,
   });
 
   @override
@@ -2222,6 +2311,22 @@ class _AlarmTabState extends State<_AlarmTab> {
             content: Text('Alarm saved'), backgroundColor: Colors.green),
       );
     }
+  }
+
+  Future<void> _toggleAlarmActivation() async {
+    if (widget.config == null) return;
+    await widget.onAlarmEnabledChanged(!widget.alarmEnabled);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          widget.alarmEnabled
+              ? 'Alarm monitoring deactivated'
+              : 'Alarm monitoring activated',
+        ),
+        backgroundColor: widget.alarmEnabled ? Colors.orange : Colors.green,
+      ),
+    );
   }
 
   void _resetAlarm() {
@@ -2308,6 +2413,19 @@ class _AlarmTabState extends State<_AlarmTab> {
                 child: const Text('Save'),
               ),
               const SizedBox(width: 8),
+              FilledButton.tonal(
+                onPressed:
+                    canDoAlarm && widget.config != null ? _toggleAlarmActivation : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: widget.alarmEnabled
+                      ? Colors.orange.withValues(alpha: 0.18)
+                      : null,
+                  foregroundColor:
+                      widget.alarmEnabled ? Colors.orange.shade800 : null,
+                ),
+                child: Text(widget.alarmEnabled ? 'Activated' : 'Activate'),
+              ),
+              const SizedBox(width: 8),
               FilledButton(
                 onPressed: canDoAlarm ? _resetAlarm : null,
                 style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -2319,4 +2437,40 @@ class _AlarmTabState extends State<_AlarmTab> {
       ),
     );
   }
+}
+
+String? _getAlarmTrigger({
+  required Device device,
+  required DeviceConfig? config,
+  required MqttService mqttService,
+  required bool alarmEnabled,
+}) {
+  if (!alarmEnabled || config == null) return null;
+
+  final minPh = config.minPh ?? 0;
+  final maxPh = config.maxPh ?? 0;
+  if (minPh >= maxPh) return null;
+
+  final deviceId = device.deviceId;
+  final value =
+      double.tryParse(mqttService.deviceValues['/$deviceId/PH_VAL'] ?? '') ??
+          0;
+  if (value < minPh) return 'min';
+  if (value > maxPh) return 'max';
+  return null;
+}
+
+bool _shouldTriggerAlarm({
+  required Device device,
+  required DeviceConfig? config,
+  required MqttService mqttService,
+  required bool alarmEnabled,
+}) {
+  return _getAlarmTrigger(
+        device: device,
+        config: config,
+        mqttService: mqttService,
+        alarmEnabled: alarmEnabled,
+      ) !=
+      null;
 }
