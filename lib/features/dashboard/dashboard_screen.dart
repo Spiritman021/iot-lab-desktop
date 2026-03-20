@@ -1738,15 +1738,10 @@ class _LogTabState extends State<_LogTab> {
                       batchNo: _batchNoController.text,
                       arNo: _arNoController.text,
                     );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Export $val - coming soon')),
-                    );
                   }
                 },
                 itemBuilder: (ctx) => [
                   const PopupMenuItem(value: 'Pdf', child: Text('Export PDF')),
-                  const PopupMenuItem(value: 'All', child: Text('Export All')),
                 ],
                 child: IgnorePointer(
                   child: FilledButton.tonal(

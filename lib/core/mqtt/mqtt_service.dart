@@ -147,8 +147,8 @@ class MqttService extends ChangeNotifier {
         final splitTopic = topic.split('/');
         final deviceId = splitTopic.length > 1 ? splitTopic[1] : '';
 
-        // Update device status (last seen timestamp)
-        if (deviceId.isNotEmpty) {
+        // Only true device heartbeat/telemetry topics should mark a device online.
+        if (deviceId.isNotEmpty && _isPresenceTopic(topic)) {
           deviceStatus[deviceId] = DateTime.now().millisecondsSinceEpoch;
         }
 
@@ -193,6 +193,23 @@ class MqttService extends ChangeNotifier {
     final builder = MqttClientPayloadBuilder();
     builder.addString(payload);
     _client!.publishMessage(topic, MqttQos.exactlyOnce, builder.payload!);
+  }
+
+  bool _isPresenceTopic(String topic) {
+    const presenceSuffixes = {
+      '/STATUS',
+      '/PH_VAL',
+      '/TEMP_VAL',
+      '/MV_VAL',
+      '/BATTERY',
+      '/SLOPE',
+      '/OFFSET',
+      '/A0',
+      '/A1',
+      '/VOLTAGE',
+    };
+
+    return presenceSuffixes.any(topic.endsWith);
   }
 
   /// Disconnect from broker
