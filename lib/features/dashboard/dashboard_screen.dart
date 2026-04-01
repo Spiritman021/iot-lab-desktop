@@ -344,13 +344,7 @@ class _DashboardPanel extends StatelessWidget {
           mqttService.deviceStatus[id],
           DateTime.now().millisecondsSinceEpoch,
         );
-        final slopeValue = isThreePointPh
-            ? mqttService.deviceValues['/$id/A1'] ??
-                mqttService.deviceValues['/$id/SLOPE_4'] ??
-                mqttService.deviceValues['/$id/SLOPE_3'] ??
-                mqttService.deviceValues['/$id/SLOPE'] ??
-                '00'
-            : mqttService.deviceValues['/$id/SLOPE'] ?? '00';
+        final slopeValue = mqttService.deviceValues['/$id/SLOPE'] ?? '00';
         final offsetValue = isThreePointPh
             ? mqttService.deviceValues['/$id/A0'] ??
                 mqttService.deviceValues['/$id/OFFSET'] ??
